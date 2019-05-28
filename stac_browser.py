@@ -29,6 +29,7 @@ from PyQt5.QtWidgets import QAction
 from .resources import *
 # Import the code for the dialog
 from .stac_browser_dialog import STACBrowserDialog
+from .stac_browser_loading import STACBrowserLoading
 import os.path
 
 
@@ -189,7 +190,7 @@ class STACBrowser:
         # Only create GUI ONCE in callback, so that it will only load when the plugin is started
         if self.first_start == True:
             self.first_start = False
-            self.dlg = STACBrowserDialog()
+            self.dlg = STACBrowserLoading()
 
         # show the dialog
         self.dlg.show()
