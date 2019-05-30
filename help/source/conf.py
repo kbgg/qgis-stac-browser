@@ -214,3 +214,4 @@ man_pages = [
     ('index', 'TemplateClass', u'STACBrowser Documentation',
      [u'Kevin Booth'], 1)
 ]
+

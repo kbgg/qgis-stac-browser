@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/plugins/stac_browser" >
-        <file>icon.png</file>
+        <file>assets/icon.png</file>
     </qresource>
 </RCC>
+

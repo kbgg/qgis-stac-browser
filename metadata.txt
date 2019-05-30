@@ -30,7 +30,7 @@ tags=web, raster
 
 homepage=https://github.com/kbgg/qgis-stac-browser
 category=Web
-icon=icon.png
+icon=assets/icon.png
 # experimental flag
 experimental=True
 

@@ -28,8 +28,8 @@ from PyQt5.QtWidgets import QAction
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
-from .stac_browser_dialog import STACBrowserDialog
-from .stac_browser_loading import STACBrowserLoading
+from .ui.stac_browser_dialog import STACBrowserDialog
+from .ui.stac_browser_loading import STACBrowserLoading
 import os.path
 
 
@@ -163,7 +163,7 @@ class STACBrowser:
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
-        icon_path = ':/plugins/stac_browser/icon.png'
+        icon_path = ':/plugins/stac_browser/assets/icon.png'
         self.add_action(
             icon_path,
             text=self.tr(u'Browse STAC Catalogs'),
