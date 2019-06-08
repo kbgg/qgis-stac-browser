@@ -1,93 +1,144 @@
-# -*- coding: utf-8 -*-
-
 import os
+import time
 
+from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5 import uic
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 
-# This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
+import requests
+import shutil
+
+from ..models.item import Item
+
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'results_dialog.ui'))
 
 
 class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
-    def __init__(self, parent=None):
-        """Constructor."""
+    def __init__(self, data={}, hooks={}, parent=None):
         super(ResultsDialog, self).__init__(parent)
-        # Set up the user interface from Designer through FORM_CLASS.
-        # After self.setupUi() you can access any designer object by doing
-        # self.<objectname>, and you can use autoconnect slots - see
-        # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
-        # #widgets-and-dialogs-with-auto-connect
+        self.data = data
+        self.hooks = hooks
         self.setupUi(self)
-
-        self.setFixedSize(self.size())
-
+        
+        self.selected_item = None
+        
+        # Populate Item List
         model = QtGui.QStandardItemModel(self.list)
-        preview_path = os.path.join(os.path.dirname(__file__), 'preview.jpg')
-        self.items = {
-            'S2B_9VXK_20171013_0': {
-                    'thumbnail': preview_path,
-                    'properties': {
-                            'collection': 'sentinel-2-l1c',
-                            'datetime': '2017-10-13T20:03:46.461000+00:00',
-                            'eo:platform': 'sentinel-2b',
-                            'eo:cloud_cover': 41.52,
-                            'sentinel:utm_zone': 9,
-                            'sentinel:latitude_band': 'V',
-                            'sentinel:grid_square': 'XK',
-                            'sentinel:sequence': '0',
-                            'sentinel:product_id': 'S2B_MSIL1C_20171013T200349_N0205_R128_T09VXK_20171013T200346'
-                        }
-                    },
-            'S2B_9VXK_20171014_0': {
-                    'thumbnail': None,
-                    'properties': {
+        
+        for item in self.get_items():
+            i = QtGui.QStandardItem(item.get_id())
+            i.setCheckable(True)
+            model.appendRow(i)
 
-                        }
-                    },
-            'S2B_9VXK_20171015_0': {
-                    'thumbnail': preview_path,
-                    'properties': {
-
-                        }
-                    },
-        }
-
-        for collection in sorted(list(self.items.keys())):
-            item = QtGui.QStandardItem(collection.replace('\n', ' '))
-            item.setCheckable(True)
-            model.appendRow(item)
-
+        self.list_model = model
         self.list.setModel(model)
 
-        self.list.clicked.connect(self.on_list_clicked)
+        # Connect Buttons
+        self.list.activated.connect(self.on_list_clicked)
+        self.selectButton.clicked.connect(self.on_select_all_clicked)
+        self.deselectButton.clicked.connect(self.on_deselect_all_clicked)
+        self.downloadButton.clicked.connect(self.on_download_clicked)
+        self.backButton.clicked.connect(self.on_back_clicked)
+
+    def get_items(self):
+        return sorted(self.data['items'])
+
+    def on_download_clicked(self):
+        for i in range(self.list_model.rowCount()):
+            item = self.list_model.item(i)
+            if item.checkState() != QtCore.Qt.Checked:
+                continue
+            
+            self.get_items()[i].download()
+
+    def on_select_all_clicked(self):
+        for i in range(self.list_model.rowCount()):
+            item = self.list_model.item(i)
+            item.setCheckState(QtCore.Qt.Checked)
+    
+    def on_deselect_all_clicked(self):
+        for i in range(self.list_model.rowCount()):
+            item = self.list_model.item(i)
+            item.setCheckState(QtCore.Qt.Unchecked)
 
     @QtCore.pyqtSlot(QtCore.QModelIndex)
     def on_list_clicked(self, index):
         items = self.list.selectedIndexes()
-        item_id = sorted(list(self.items.keys()))[int(items[0].row())]
-        self.load_item(item_id)
+        item = self.get_items()[items[0].row()]
+        self.load_item(item)
 
-    def load_item(self, item_id):
-        data = self.items[item_id]
-        if data['thumbnail'] is not None:
-            image_profile = QtGui.QImage(data['thumbnail'])
-            image_profile = image_profile.scaled(250, 250,
-                                                 aspectRatioMode=QtCore.Qt.KeepAspectRatio,
-                                                 transformMode=QtCore.Qt.SmoothTransformation)
-            self.imageView.setPixmap(QtGui.QPixmap.fromImage(image_profile))
-        else:
-            self.imageView.setText('No Preview Available')
+    def load_item(self, item):
+        self.selected_item = item
+        self.set_preview(item)
 
-        property_keys = sorted(list(data['properties'].keys()))
+        property_keys = sorted(list(item.get_properties().keys()))
 
         self.propertiesTable.setColumnCount(2)
         self.propertiesTable.setRowCount(len(property_keys))
 
         for i, key in enumerate(property_keys):
             self.propertiesTable.setItem(i, 0, QtWidgets.QTableWidgetItem(key))
-            self.propertiesTable.setItem(i, 1, QtWidgets.QTableWidgetItem(str(data['properties'][key])))
+            self.propertiesTable.setItem(i, 1, QtWidgets.QTableWidgetItem(str(item.get_properties()[key])))
         self.propertiesTable.resizeColumnsToContents()
+
+    def on_image_loaded(self, item):
+        if self.selected_item != item:
+            return
+
+        self.set_preview(item)
+
+    def set_preview(self, item):
+        if item.get_thumbnail_url() is None:
+            self.imageView.setText('No Preview Available')
+            return
+
+        if not os.path.exists(item.get_thumbnail_path()):
+            self.imageView.setText('Loading Preview...')
+            self.loading_thread = LoadPreviewThread(item, on_image_loaded=self.on_image_loaded)
+            self.loading_thread.start()
+            return
+
+        image_profile = QtGui.QImage(item.get_thumbnail_path())
+        image_profile = image_profile.scaled(self.imageView.size().width(),
+                                             self.imageView.size().height(),
+                                             aspectRatioMode=QtCore.Qt.KeepAspectRatio,
+                                             transformMode=QtCore.Qt.SmoothTransformation)
+        self.imageView.setPixmap(QtGui.QPixmap.fromImage(image_profile))
+
+    def resizeEvent(self, event):
+        if self.selected_item is None:
+            return
+
+        self.set_preview(self.selected_item)
+    
+    def closeEvent(self, event):
+        if event.spontaneous():
+            self.hooks['on_close']()
+
+    def on_back_clicked(self):
+        self.hooks['on_back']()
+
+
+class LoadPreviewThread(QThread):
+    finished_signal = pyqtSignal(Item)
+
+    def __init__(self, item, on_image_loaded=None):
+        QThread.__init__(self)
+        self.item = item
+        self.on_image_loaded=on_image_loaded
+
+        self.finished_signal.connect(self.on_image_loaded)
+
+    def __del__(self):
+        self.wait()
+
+    def run(self):
+        r = requests.get(self.item.get_thumbnail_url(), stream=True)
+        if r.status_code == 200:
+            with open(self.item.get_thumbnail_path(), 'wb') as f:
+                r.raw.decode_content = True
+                shutil.copyfileobj(r.raw, f)
+        self.finished_signal.emit(self.item)

@@ -1,5 +1,5 @@
 class Config:
-    STAC_APIS = ['https://sat-api.developmentseed.org/stac']
+    STAC_APIS = ['https://stac.boundlessgeo.io', 'https://sat-api.developmentseed.org']
 
     def __init__(self):
         pass
