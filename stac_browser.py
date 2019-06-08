@@ -1,69 +1,123 @@
-# -*- coding: utf-8 -*-
-
-from PyQt5.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
+from PyQt5.QtCore import QSettings, QCoreApplication
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction
 
-# Initialize Qt resources from file resources.py
 from .resources import *
-# Load UI Dialog Windows
-from .ui.catalog_loading_dialog import CatalogLoadingDialog
+from .ui.collection_loading_dialog import CollectionLoadingDialog
 from .ui.query_dialog import QueryDialog
+from .ui.item_loading_dialog import ItemLoadingDialog
 from .ui.results_dialog import ResultsDialog
 import os.path
 
 class STACBrowser:
-    """QGIS Plugin Implementation."""
-
     def __init__(self, iface):
-        """Constructor.
-
-        :param iface: An interface instance that will be passed to this class
-            which provides the hook by which you can manipulate the QGIS
-            application at run time.
-        :type iface: QgsInterface
-        """
-        # Save reference to the QGIS interface
         self.iface = iface
-        # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
-        # initialize locale
-        locale = QSettings().value('locale/userLocale')[0:2]
-        locale_path = os.path.join(
-            self.plugin_dir,
-            'i18n',
-            'STACBrowser_{}.qm'.format(locale))
 
-        if os.path.exists(locale_path):
-            self.translator = QTranslator()
-            self.translator.load(locale_path)
-
-            if qVersion() > '4.3.3':
-                QCoreApplication.installTranslator(self.translator)
-
-        # Declare instance attributes
         self.actions = []
-        self.menu = self.tr(u'&STAC Browser')
+        self.menu = u'&STAC Browser'
 
-        # Check if plugin was started the first time in current QGIS session
-        # Must be set in initGui() to survive plugin reloads
-        self.first_start = None
+        self.current_window = 'COLLECTION_LOADING'
+        self.windows = {
+                    'COLLECTION_LOADING': {
+                        'class': CollectionLoadingDialog,
+                        'hooks': {'on_finished': self.collection_load_finished},
+                        'data': None,
+                        'dialog': None
+                    },
+                    'QUERY': { 
+                        'class': QueryDialog,
+                        'hooks': {'on_close': self.on_close, 'on_search': self.on_search},
+                        'data': None,
+                        'dialog': None
+                    },
+                    'ITEM_LOADING': { 
+                        'class': ItemLoadingDialog,
+                        'hooks': {'on_close': self.on_close, 'on_finished': self.item_load_finished},
+                        'data': None,
+                        'dialog': None
+                    },
+                    'RESULTS': { 
+                        'class': ResultsDialog,
+                        'hooks': {'on_close': self.on_close, 'on_back': self.on_back},
+                        'data': None,
+                        'dialog': None
+                    },
+                }
 
-    # noinspection PyMethodMayBeStatic
-    def tr(self, message):
-        """Get the translation for a string using Qt translation API.
+    def on_search(self, collections, extent_layer, time_period):
+        (start_time, end_time) = time_period
 
-        We implement this ourselves since we do not inherit QObject.
+        extent_rect = extent_layer.extent()
+        extent = [extent_rect.xMinimum(), extent_rect.yMinimum(), extent_rect.xMaximum(), extent_rect.yMaximum()]
 
-        :param message: String for translation.
-        :type message: str, QString
+        self.windows['ITEM_LOADING']['data'] = { 
+                    'collections': collections,
+                    'extent': extent,
+                    'start_time': start_time,
+                    'end_time': end_time
+                }
+        self.current_window = 'ITEM_LOADING'
+        self.windows['QUERY']['dialog'].close()
+        self.load_window()
 
-        :returns: Translated version of message.
-        :rtype: QString
-        """
-        # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
-        return QCoreApplication.translate('STACBrowser', message)
+    def on_back(self):
+        self.windows['RESULTS']['data'] = None
+        self.windows['RESULTS']['dialog'].close()
+        self.windows['RESULTS']['dialog'] = None
 
+        self.current_window = 'QUERY'
+        self.load_window()
+
+    def on_close(self):
+        for key, window in self.windows.items():
+            if window['dialog'] is not None:
+                window['dialog'].close()
+
+            window['dialog'] = None
+            window['data'] = None
+        self.current_window = 'COLLECTION_LOADING'
+
+    def load_window(self):
+        window = self.windows.get(self.current_window, None)
+
+        if window is None:
+            print(f'Window {self.current_window} does not exist')
+            return
+
+        if window['dialog'] is None:
+            window['dialog'] = window.get('class')(data=window.get('data'), hooks=window.get('hooks'))
+            window['dialog'].show()
+        else:
+            window['dialog'].raise_()
+            window['dialog'].show()
+            window['dialog'].activateWindow()
+
+    def reset_windows(self):
+        for key, window in self.windows.items():
+            window['data'] = None
+            window['dialog'] = None
+
+    def collection_load_finished(self, collections):
+        collection_ids = []
+        final_collections = []
+        for collection in collections:
+            if f'{collection.get_id()}:{collection.get_parent().get_url()}' in collection_ids:
+                continue
+            collection_ids.append(f'{collection.get_id()}:{collection.get_parent().get_url()}')
+            final_collections.append(collection)
+        self.windows['QUERY']['data'] = { 'collections': final_collections }
+        self.current_window = 'QUERY'
+        self.windows['COLLECTION_LOADING']['dialog'].close()
+        self.load_window()
+
+    def item_load_finished(self, items):
+        self.windows['RESULTS']['data'] = { 'items': items }
+        self.current_window = 'RESULTS'
+        self.windows['ITEM_LOADING']['dialog'].close()
+        self.windows['ITEM_LOADING']['data'] = None
+        self.windows['ITEM_LOADING']['dialog'] = None
+        self.load_window()
 
     def add_action(
         self,
@@ -76,44 +130,6 @@ class STACBrowser:
         status_tip=None,
         whats_this=None,
         parent=None):
-        """Add a toolbar icon to the toolbar.
-
-        :param icon_path: Path to the icon for this action. Can be a resource
-            path (e.g. ':/plugins/foo/bar.png') or a normal file system path.
-        :type icon_path: str
-
-        :param text: Text that should be shown in menu items for this action.
-        :type text: str
-
-        :param callback: Function to be called when the action is triggered.
-        :type callback: function
-
-        :param enabled_flag: A flag indicating if the action should be enabled
-            by default. Defaults to True.
-        :type enabled_flag: bool
-
-        :param add_to_menu: Flag indicating whether the action should also
-            be added to the menu. Defaults to True.
-        :type add_to_menu: bool
-
-        :param add_to_toolbar: Flag indicating whether the action should also
-            be added to the toolbar. Defaults to True.
-        :type add_to_toolbar: bool
-
-        :param status_tip: Optional text to show in a popup when mouse pointer
-            hovers over the action.
-        :type status_tip: str
-
-        :param parent: Parent widget for the new action. Defaults None.
-        :type parent: QWidget
-
-        :param whats_this: Optional text to show in the status bar when the
-            mouse pointer hovers over the action.
-
-        :returns: The action that was created. Note that the action is also
-            added to self.actions list.
-        :rtype: QAction
-        """
 
         icon = QIcon(icon_path)
         action = QAction(icon, text, parent)
@@ -140,53 +156,17 @@ class STACBrowser:
         return action
 
     def initGui(self):
-        """Create the menu entries and toolbar icons inside the QGIS GUI."""
         icon_path = ':/plugins/stac_browser/assets/icon.png'
         self.add_action(
             icon_path,
-            text=self.tr(u'Browse STAC Catalogs'),
-            callback=self.run,
+            text='Browse STAC Catalogs',
+            callback=self.load_window,
             parent=self.iface.mainWindow())
-
-        # will be set False in run()
-        self.first_start = True
-
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
             self.iface.removePluginWebMenu(
-                self.tr(u'&STAC Browser'),
+                u'&STAC Browser',
                 action)
             self.iface.removeToolBarIcon(action)
-
-
-    def run(self):
-        # Create the dialog with elements (after translation) and keep reference
-        # Only create GUI ONCE in callback, so that it will only load when the plugin is started
-        if self.first_start == True:
-            self.first_start = False
-            self.dlg = CatalogLoadingDialog(on_finished=self.on_catalog_loading_finished)
-
-        # show the dialog
-        self.dlg.show()
-        result = self.dlg.exec_()
-
-    def on_catalog_loading_finished(self, results):
-        self.dlg.close()
-        self.dlg = QueryDialog()
-        self.dlg.show()
-
-        result = self.dlg.exec_()
-        if result:
-            self.on_search()
-
-    def on_search(self):
-        self.dlg.close()
-        self.dlg = ResultsDialog()
-        self.dlg.show()
-
-        result = self.dlg.exec_()
-        if result:
-            self.dlg.close()
-            self.first_start = True
