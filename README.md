@@ -13,7 +13,7 @@ To deploy the application to your QGIS plugins directory run `pb_tool` deploy an
 It's recommended to use the Plugin Reloader plugin within QGIS to easily reload the plugin during development.
 ## Current version and branches
 
-The [master branch](https://github.com/kbgg/qgis-stac-browser/tree/master) is the 'stable' version of the spec. It is currently version 
+The [master branch](https://github.com/kbgg/qgis-stac-browser/tree/master) is the 'stable' version of the plugin. It is currently version 
 **0.1** of the plugin. The 
 [dev](https://github.com/kbgg/qgis-stac-browser/tree/dev) branch is where active development takes place. 
 Whenever dev stabilizes a release is cut and we merge dev in to master. So master should be stable at any given time.
