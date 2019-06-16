@@ -1,38 +1,101 @@
-import requests
-import urllib.parse as urlparse
-import math
-from .item import Item
+from .link import Link
 
 class Collection:
-    def __init__(self, parent=None, url=None):
-        self.parent = parent
-        self.url = url
-        self.data = None
+    def __init__(self, catalog=None, json={}):
+        self._catalog = catalog
+        self._json = json
 
-    def get_url(self):
-        return self.url
+    @property
+    def stac_version(self):
+        return self._json.get('stac_version', None)
 
-    def get_parent(self):
-        return self.parent
+    @property
+    def id(self):
+        return self._json.get('id', None)
 
-    def get_search_url(self):
-        return f'{self.get_url()}/items'
+    @property
+    def title(self):
+        return self._json.get('title', None)
 
-    def load(self):
-        r = requests.get(self.get_url(), verify=False)
-        self.data = r.json()
+    @property
+    def description(self):
+        return self._json.get('description', None)
 
-    def get_data(self):
-        if self.data is None:
-            return {}
+    @property
+    def keywords(self):
+        return self._json.get('keywords', [])
 
-        return self.data
+    @property
+    def version(self):
+        return self._json.get('version', None)
 
-    def get_title(self):
-        return self.get_data().get('title', 'Unknown')
+    @property
+    def license(self):
+        return self._json.get('license', None)
 
-    def get_id(self):
-        return self.get_data().get('id', 'N/A')
+    @property
+    def providers(self):
+        return [Provider(p) for p in self._json.get('providers', [])]
+
+    @property
+    def extent(self):
+        return Extent(self._json.get('extent', {}))
+
+    @property
+    def properties(self):
+        return self._json.get('properties', [])
+
+    @property
+    def links(self):
+        return [Link(l) for l in self._json.get('links', [])]
+
+    @property
+    def bands(self):
+        bands = {}
+        for i, band in enumerate(self.properties.get('eo:bands', [])):
+            band['band'] = i+1
+            bands[band.get('name', None)] = band
+
+        return bands
+    
+    @property
+    def catalog(self):
+        return self._catalog
 
     def __lt__(self, other):
-        return self.get_title() < other.get_title()
+        return self.title.lower() < other.title.lower()
+
+
+class Extent:
+    def __init__(self, json={}):
+        self._json = json
+
+    @property
+    def spatial(self):
+        return self._json.get('spatial', [])
+
+    @property
+    def temporal(self):
+        return self._json.get('temporal', None)
+
+
+class Provider:
+    def __init__(self, json={}):
+        self._json = json
+
+    @property
+    def name(self):
+        return self._json.get('name', None)
+
+    @property
+    def description(self):
+        return self._json.get('description', None)
+
+    @property
+    def roles(self):
+        return self._json.get('roles', [])
+
+    @property
+    def url(self):
+        return self._json.get('url', None)
+

@@ -1,0 +1,31 @@
+from .item import Item
+from .link import Link
+
+class SearchResult:
+    def __init__(self, api=None, json={}):
+        self._api = api
+        self._json = json
+
+    @property
+    def api(self):
+        return self._api
+
+    @property
+    def catalog(self):
+        return self._api.catalog
+
+    @property
+    def type(self):
+        return self._json.get('type', None)
+
+    @property
+    def meta(self):
+        return self._json.get('meta', None)
+
+    @property
+    def items(self):
+        return [Item(self.catalog, f) for f in self._json.get('features', [])]
+
+    @property
+    def links(self):
+        return [Link(l) for l in self._json.get('links', [])]

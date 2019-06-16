@@ -1,67 +1,54 @@
-import requests
-import json
-import math
-from .collection import Collection
-from .item import Item
+from .link import Link
 
 class Catalog:
-    def __init__(self, url=None):
-        self.url = url
-        self.data = None
+    def __init__(self, api=None, json={}):
+        self._api = api
+        self._json = json
+        self._collections = None
 
-    def get_data(self):
-        if self.data is None:
-            return {}
-        
-        return self.data
+    @property
+    def api(self):
+        return self._api
 
-    def get_title(self):
-        return self.get_data().get('title', 'Unknown')
+    @property
+    def id(self):
+        return self._json.get('id', None)
 
-    def get_url(self):
-        return self.url
+    @property
+    def stac_version(self):
+        return self._json.get('stac_version', None)
 
-    def get_collections(self):
-        r = requests.get(f'{self.get_url()}/stac', verify=False)
-        self.data = r.json()
-        links = r.json().get('links', [])
-        collections = []
+    @property
+    def title(self):
+        return self._json.get('title', None)
 
-        for link in links:
-            if link.get('rel', None) == 'child':
-                collection = Collection(parent=self, url=link.get('href', None))
-                collections.append(collection)
+    @property
+    def description(self):
+        return self._json.get('description', None)
 
-        return collections
+    @property
+    def collections(self):
+        if self._collections is None:
+            self.load_collections()
 
-    def search_items(self, collections, extent, start_time, end_time, page=0, on_next_page=None):
-        collection_ids = []
-        items = []
-        for collection in collections:
-            collection_ids.append(collection.get_id())
-        if on_next_page is not None: 
-            on_next_page()
-        r = requests.post(f'{self.get_url()}/stac/search',
-                          json={
-                              'collections': collection_ids,
-                              'bbox': extent,
-                              'page': page,
-                              'limit': 100,
-                              'time': f'{start_time.strftime("%Y-%m-%dT%H:%M:%SZ")}/{end_time.strftime("%Y-%m-%dT%H:%M:%SZ")}'
-                              }, verify=False)
-        data = r.json()
-        for feature in data['features']:
-           items.append(Item(data=feature)) 
+        return self._collections
 
-        search_meta = data['meta']
-        max_page = math.ceil(search_meta['found'] / search_meta['limit'])-1
-        if page < max_page:
-            more_items = self.search_items(collections, 
-                                           extent, 
-                                           start_time, 
-                                           end_time, 
-                                           page+1, 
-                                           on_next_page=on_next_page)
-            items.extend(more_items)
+    @property
+    def links(self):
+        return [Link(l) for l in self._json.get('links', [])]
 
-        return items
+    @property
+    def api(self):
+        return self._api
+
+    def load_collections(self):
+        self._collections = []
+        for link in self.links:
+            collection_id = self.api.collection_id_from_href(link.href)
+            if collection_id is None:
+                continue
+            self._collections.append(self.api.load_collection(self, collection_id))
+
+    def __lt__(self, other):
+        return self.title.lower() < other.title.lower()
+

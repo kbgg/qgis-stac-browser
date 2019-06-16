@@ -5,8 +5,9 @@ from PyQt5 import uic
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
+from PyQt5.QtWidgets import QTreeWidgetItem
 
-from qgis.core import QgsProject
+from qgis.core import QgsProject, QgsMapLayer
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'query_dialog.ui'))
@@ -15,76 +16,100 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self, data={}, hooks={}, parent=None):
         super(QueryDialog, self).__init__(parent)
-        self.data = data
+        self.data = data 
         self.hooks = hooks
         self.setupUi(self)
 
-        now = QtCore.QDateTime.currentDateTimeUtc()
+        self._extent_layers = None
+        self._catalog_tree_model = None
 
-        self.endPeriod.setDateTime(now)
-
-        layers = QgsProject.instance().mapLayers()
-        self.eligible_layers = []
-        for layer_key, layer in layers.items():
-            if layer.type() in [0]:
-                self.eligible_layers.append(layer)
-
-        for layer in self.eligible_layers:
-            self.extentLayer.addItem(layer.name())
-
-        self.list_model = QStandardItemModel(self.list)
-        
-        for collection in self.get_collections():
-            collection_title = collection.get_title().replace('\n', ' ')
-            item = QStandardItem(f'{collection_title} [{collection.get_parent().get_title()}]')
-            item.setCheckable(True)
-            self.list_model.appendRow(item)
-
-        self.list.setModel(self.list_model)
+        self.populate_time_periods()
+        self.populate_extent_layers()
+        self.populate_collection_list()
 
         self.searchButton.clicked.connect(self.on_search_clicked)
         self.cancelButton.clicked.connect(self.on_cancel_clicked)
 
-    def on_search_clicked(self):
-        selected_collections = self.get_selected_collections()
-        catalog_collections = {}
+    def populate_time_periods(self):
+        now = QtCore.QDateTime.currentDateTimeUtc()
+        self.endPeriod.setDateTime(now)
 
-        for collection in selected_collections:
-            if catalog_collections.get(collection.get_parent().get_url(), None) is None:
-                catalog_collections[collection.get_parent().get_url()] = []
-            catalog_collections[collection.get_parent().get_url()].append(collection)
+    def populate_extent_layers(self):
+        self._extent_layers = []
+        
+        layers = QgsProject.instance().mapLayers()
+        for layer_key, layer in layers.items():
+            if layer.type() in [QgsMapLayer.VectorLayer]:
+                self._extent_layers.append(layer)
 
-        self.hooks['on_search'](catalog_collections,
-                                self.get_extent_layer(),
-                                self.get_time_period())
+        for layer in self._extent_layers:
+            self.extentLayer.addItem(layer.name())
 
-    def on_cancel_clicked(self):
-        self.hooks['on_close']()
+    def populate_collection_list(self):
+        self._catalog_tree_model = QStandardItemModel(self.treeView)
+        for catalog in self.catalogs:
+            catalog_node = QTreeWidgetItem(self.treeView)
+            catalog_node.setText(0, f'{catalog.title}')
+            catalog_node.setFlags(catalog_node.flags() | QtCore.Qt.ItemIsTristate | QtCore.Qt.ItemIsUserCheckable)
+            for collection in sorted(catalog.collections):
+                title = collection.title.replace("\n", " ")
+                collection_node = QTreeWidgetItem(catalog_node)
+                collection_node.setText(0, title)
+                collection_node.setFlags(collection_node.flags() | QtCore.Qt.ItemIsUserCheckable)
+                collection_node.setCheckState(0, QtCore.Qt.Unchecked)
 
-    def get_collections(self):
-        return sorted(self.data['collections'])
+    @property
+    def catalog_selections(self):
+        catalog_collections = []
+        root = self.treeView.invisibleRootItem()
+        for i in range(root.childCount()):
+            catalog_node = root.child(i)
+            catalog = self.catalogs[i]
+            selected_collections = []
+            for j in range(catalog_node.childCount()):
+                collection_node = catalog_node.child(j)
+                collection = self.catalogs[i].collections[j]
+                if collection_node.checkState(0) == QtCore.Qt.Checked:
+                    selected_collections.append(collection)
 
-    def get_extent_layer(self):
-        for i, layer in enumerate(self.eligible_layers):
-            if i == self.extentLayer.currentIndex():
-                return layer
+            if len(selected_collections) > 0:
+                catalog_collections.append({
+                    'catalog': catalog,
+                    'collections': selected_collections
+                    })
+        return catalog_collections
 
-        return None
+    @property
+    def collections(self):
+        collections = []
+        for catalog in sorted(self.data.get('catalogs', [])):
+            collections.extend(sorted(catalog.collections))
 
-    def get_time_period(self):
+        return collections
+
+    @property
+    def catalogs(self):
+        return sorted(self.data.get('catalogs', []))
+
+    @property
+    def extent_layer(self):
+        if self.extentLayer.currentIndex() >= len(self._extent_layers):
+            return None
+
+        return self._extent_layers[self.extentLayer.currentIndex()]
+
+    @property
+    def time_period(self):
         return (datetime.strptime(self.startPeriod.text(), '%Y-%m-%d %H:%MZ'),
                 datetime.strptime(self.endPeriod.text(), '%Y-%m-%d %H:%MZ'))
 
-    def get_selected_collections(self):
-        selected_collections = []
-        all_collections = self.get_collections()
+    def on_search_clicked(self):
+        self.hooks['on_search'](self.catalog_selections,
+                                self.extent_layer,
+                                self.time_period)
 
-        for row in range(self.list_model.rowCount()):
-            item = self.list_model.item(row)
-            if item.checkState() == QtCore.Qt.Checked:
-                selected_collections.append(all_collections[row])
-
-        return selected_collections
+    def on_cancel_clicked(self):
+        self.hooks['on_close']()
 
     def closeEvent(self, event):
         if event.spontaneous():
