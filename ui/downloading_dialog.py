@@ -64,27 +64,34 @@ class DownloadingDialog(QtWidgets.QDialog, FORM_CLASS):
         QgsProject.instance().addMapLayer(layer)
 
     def on_progress_update(self, current_item, total_items, state, data={}):
-        label_text = f'Item {current_item+1} of {total_items}' + '\n'
+        self.totalLabel.setText(f'Item {current_item+1} of {total_items}')
+        progress = int((current_item / total_items) * 100)
+        self.totalProgress.setValue(progress)
+
+        total_bands = len(data.get('bands', []))
+        total_steps = total_bands + 2
         if state == 'DOWNLOADING_BAND':
             current_band = data.get('band', '???')
-            label_text += f'Downloading Band {current_band}'
+            self.itemLabel.setText(f'Downloading Band {current_band}')
+            current_step = data.get('bands', []).index(current_band) + 1
         elif state == 'BUILDING_VRT':
-            label_text += 'Building Virtual Raster'
+            self.itemLabel.setText('Building Virtual Raster')
+            current_step = total_bands + 1
         elif state == 'ADDING_TO_LAYERS':
-            label_text += 'Adding to Layers'
-                
-        self.label.setText(label_text)
+            self.itemLabel.setText('Adding to Layers')
+            current_step = total_bands + 2
 
-        progress = int((current_item / total_items) * 100)
-        self.progressBar.setValue(progress)
+        progress = int(((current_step - 1) / total_steps) * 100)
+        self.itemProgress.setValue(progress)
 
     def on_downloading_finished(self):
-        self.progressBar.setValue(100)
+        self.totalProgress.setValue(100)
+        self.itemProgress.setValue(100)
         self.hooks['on_finished']()
 
     def closeEvent(self, event):
         if event.spontaneous():
-            self.loading_thread.stop()
+            self.loading_thread.terminate()
             self.hooks['on_close']()
 
 class DownloadItemsThread(QThread):
@@ -114,9 +121,6 @@ class DownloadItemsThread(QThread):
 
     def run(self):
         for i, item in enumerate(self.items):
-            if not self._running:
-                return
-
             self._current_item = i
             bands = []
             for collection_band in self.bands:
@@ -129,5 +133,3 @@ class DownloadItemsThread(QThread):
     def on_update(self, state, data={}):
         self.progress_signal.emit(self._current_item, len(self.items), state, data)
 
-    def stop(self):
-        self._running = False

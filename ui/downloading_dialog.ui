@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>253</width>
-    <height>97</height>
+    <height>114</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -20,17 +20,37 @@
    <string>STAC Browser</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="0" column="0">
-    <widget class="QLabel" name="label">
-     <property name="text">
-      <string>Loading...</string>
+   <item row="1" column="0">
+    <widget class="QProgressBar" name="totalProgress">
+     <property name="value">
+      <number>0</number>
      </property>
     </widget>
    </item>
-   <item row="1" column="0">
-    <widget class="QProgressBar" name="progressBar">
+   <item row="2" column="0">
+    <widget class="QLabel" name="itemLabel">
+     <property name="text">
+      <string>TextLabel</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="0">
+    <widget class="QLabel" name="totalLabel">
+     <property name="text">
+      <string>Loading...</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QProgressBar" name="itemProgress">
      <property name="value">
-      <number>0</number>
+      <number>24</number>
      </property>
     </widget>
    </item>

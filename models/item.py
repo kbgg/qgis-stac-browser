@@ -120,7 +120,7 @@ class Item:
                 continue
             
             if on_update is not None:
-                on_update('DOWNLOADING_BAND', data={'band': band})
+                on_update('DOWNLOADING_BAND', data={'band': band, 'bands': bands})
 
             r = requests.get(asset.href)
             temp_filename = os.path.join(item_download_directory, asset.href.split('/')[-1])
@@ -131,7 +131,7 @@ class Item:
                         f.write(chunk)
 
         if on_update is not None:
-            on_update('BUILDING_VRT')
+            on_update('BUILDING_VRT', data={'bands': bands})
         arguments = ['gdalbuildvrt', '-separate', os.path.join(download_directory, f'{self.id}.vrt')]
         arguments.extend(band_filenames)
         subprocess.run(arguments)
