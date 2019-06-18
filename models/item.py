@@ -1,9 +1,10 @@
 import os
 import subprocess
-import requests
 import hashlib
+import shutil
 import tempfile
 from pathlib import Path
+from ..utils import network
 
 class Item:
     def __init__(self, catalog=None, json={}):
@@ -121,14 +122,10 @@ class Item:
             
             if on_update is not None:
                 on_update('DOWNLOADING_BAND', data={'band': band, 'bands': bands})
-
-            r = requests.get(asset.href)
+            
             temp_filename = os.path.join(item_download_directory, asset.href.split('/')[-1])
             band_filenames.append(temp_filename)
-            with open(temp_filename, 'wb') as f:
-                for chunk in r.iter_content(chunk_size=8192): 
-                    if chunk:
-                        f.write(chunk)
+            network.download(asset.href, temp_filename)
 
         if on_update is not None:
             on_update('BUILDING_VRT', data={'bands': bands})

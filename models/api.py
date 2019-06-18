@@ -1,24 +1,20 @@
-import requests
 import re
 from urllib.parse import urlparse
 from .collection import Collection
 from .catalog import Catalog
 from .search_result import SearchResult
+from ..utils import network
 
-class API:
-    VERIFY_SSL = False
-
+class API: 
     def __init__(self, href=None):
         self._href = href
         self._catalog = None
 
     def load_catalog(self):
-        r = requests.get(f'{self.href}/stac', verify=self.VERIFY_SSL)
-        return Catalog(self, r.json())
+        return Catalog(self, network.request(f'{self.href}/stac'))
 
     def load_collection(self, catalog, collection_id):
-        r = requests.get(f'{self.href}/collections/{collection_id}', verify=self.VERIFY_SSL)
-        return Collection(catalog, r.json())
+        return Collection(catalog, network.request(f'{self.href}/collections/{collection_id}'))
 
     def search_items(self, collections=[], bbox=[], start_time=None,
                      end_time=None, page=1, limit=50, on_next_page=None):
@@ -30,17 +26,15 @@ class API:
         else:
             time = f'{start_time.strftime("%Y-%m-%dT%H:%M:%SZ")}/{end_time.strftime("%Y-%m-%dT%H:%M:%SZ")}'
 
-        r = requests.post(f'{self.href}/stac/search',
-                json = {
-                        'collections': [c.id for c in collections],
-                        'bbox': bbox,
-                        'time': time,
-                        'page': page,
-                        'limit': limit
-                    }, verify=self.VERIFY_SSL)
+        body = {
+                    'collections': [c.id for c in collections],
+                    'bbox': bbox,
+                    'time': time,
+                    'page': page,
+                    'limit': limit
+               }
 
-
-        search_result = SearchResult(self, r.json())
+        search_result = SearchResult(self, network.request(f'{self.href}/stac/search', data=body))
         
         items = search_result.items
         if len(items) >= limit:
