@@ -2,7 +2,6 @@ import os
 import threading
 import time
 import queue
-import requests
 
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5 import uic

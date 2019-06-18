@@ -8,10 +8,8 @@ from PyQt5 import QtCore
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import QFileDialog
 
-import requests
-import shutil
-
 from ..models.item import Item
+from ..utils import network
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'results_dialog.ui'))
@@ -159,9 +157,5 @@ class LoadPreviewThread(QThread):
         self.wait()
 
     def run(self):
-        r = requests.get(self.item.thumbnail_url, stream=True)
-        if r.status_code == 200:
-            with open(self.item.thumbnail_path, 'wb') as f:
-                r.raw.decode_content = True
-                shutil.copyfileobj(r.raw, f)
+        network.download(self.item.thumbnail_url, self.item.thumbnail_path)
         self.finished_signal.emit(self.item)

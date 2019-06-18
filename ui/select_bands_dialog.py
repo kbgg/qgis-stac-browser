@@ -29,7 +29,6 @@ class SelectBandsDialog(QtWidgets.QDialog, FORM_CLASS):
     def populate_bands_list(self):
         self._bands_tree_model = QStandardItemModel(self.treeView)
         for collection in self.collections:
-            print(collection)
             collection_node = QStandardItem(f'{collection.title}')
             for band_name, band_data in collection.bands.items():
                 if band_data.get('common_name', None) is not None:
