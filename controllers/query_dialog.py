@@ -1,25 +1,25 @@
-import os
 from datetime import datetime
 
-from PyQt5 import uic
-from PyQt5 import QtWidgets
-from PyQt5 import QtCore
+from PyQt5 import uic, QtWidgets, QtCore
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from PyQt5.QtWidgets import QTreeWidgetItem
 
 from qgis.core import QgsProject, QgsMapLayer
+
+from ..utils import ui
 from ..utils.logging import debug, info, warning, error
 
-FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'query_dialog.ui'))
 
+FORM_CLASS, _ = uic.loadUiType(ui.path('query_dialog.ui'))
 
 class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self, data={}, hooks={}, parent=None, iface=None):
         super(QueryDialog, self).__init__(parent)
+
         self.data = data 
         self.hooks = hooks
         self.iface = iface
+
         self.setupUi(self)
 
         self._extent_layers = None

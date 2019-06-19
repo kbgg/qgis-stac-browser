@@ -3,12 +3,12 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QApplication
 
 from .resources import *
-from .ui.collection_loading_dialog import CollectionLoadingDialog
-from .ui.query_dialog import QueryDialog
-from .ui.item_loading_dialog import ItemLoadingDialog
-from .ui.results_dialog import ResultsDialog
-from .ui.downloading_dialog import DownloadingDialog
-from .ui.select_bands_dialog import SelectBandsDialog
+from .controllers.collection_loading_dialog import CollectionLoadingDialog
+from .controllers.query_dialog import QueryDialog
+from .controllers.item_loading_dialog import ItemLoadingDialog
+from .controllers.results_dialog import ResultsDialog
+from .controllers.downloading_dialog import DownloadingDialog
+from .controllers.select_bands_dialog import SelectBandsDialog
 from .utils.logging import debug, info, warning, error
 import os.path
 

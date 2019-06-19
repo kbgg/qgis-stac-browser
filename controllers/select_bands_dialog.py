@@ -1,6 +1,3 @@
-import os
-from datetime import datetime
-
 from PyQt5 import uic
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
@@ -8,15 +5,19 @@ from PyQt5.QtGui import QStandardItemModel, QStandardItem
 
 from qgis.core import QgsProject, QgsMapLayer
 
-FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'select_bands_dialog.ui'))
+from ..utils import ui
 
+
+FORM_CLASS, _ = uic.loadUiType(ui.path('select_bands_dialog.ui'))
 
 class SelectBandsDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self, data={}, hooks={}, parent=None, iface=None):
         super(SelectBandsDialog, self).__init__(parent)
+
         self.data = data 
         self.hooks = hooks
+        self.iface = iface
+
         self.setupUi(self)
 
         self._bands_tree_model = None
@@ -41,12 +42,6 @@ class SelectBandsDialog(QtWidgets.QDialog, FORM_CLASS):
 
         self.treeView.setModel(self._bands_tree_model)
         self.treeView.expandAll()
-
-    def on_download_clicked(self):
-        self.accept()
-
-    def on_cancel_clicked(self):
-        self.reject()
 
     @property
     def items(self):
@@ -88,6 +83,11 @@ class SelectBandsDialog(QtWidgets.QDialog, FORM_CLASS):
 
         return collection_band_list
 
+    def on_download_clicked(self):
+        self.accept()
+
+    def on_cancel_clicked(self):
+        self.reject()
 
     def closeEvent(self, event):
         if event.spontaneous():

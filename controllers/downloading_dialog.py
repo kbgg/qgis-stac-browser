@@ -1,38 +1,28 @@
 import os
-import threading
-import time
-import queue
 
-from PyQt5.QtCore import QThread, pyqtSignal
-from PyQt5 import uic
-from PyQt5 import QtWidgets
+from PyQt5 import uic, QtWidgets
 
 from qgis.core import (
     QgsRasterLayer,
     QgsProject
 )
 
-from qgis.core import QgsLogger
-from ..utils.config import Config
-from ..models.catalog import Catalog
-from ..models.item import Item
-
-from urllib.error import URLError
+from ..utils import ui
 from ..utils.logging import debug, info, warning, error
+from ..threads.download_items_thread import DownloadItemsThread
 
-FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'downloading_dialog.ui'))
 
+FORM_CLASS, _ = uic.loadUiType(ui.path('downloading_dialog.ui'))
 
 class DownloadingDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self, data={}, hooks={}, parent=None, iface=None):
         super(DownloadingDialog, self).__init__(parent)
+
         self.data = data
         self.hooks = hooks
         self.iface = iface
 
         self.setupUi(self)
-
         self.setFixedSize(self.size())
 
         self.loading_thread = DownloadItemsThread(self.items,
@@ -101,48 +91,4 @@ class DownloadingDialog(QtWidgets.QDialog, FORM_CLASS):
             self.loading_thread.terminate()
             self.hooks['on_close']()
 
-class DownloadItemsThread(QThread):
-    progress_signal = pyqtSignal(int, int, str, dict)
-    error_signal = pyqtSignal(Item, Exception)
-    add_layer_signal = pyqtSignal(int, int, Item, str)
-    finished_signal = pyqtSignal()
-
-    def __init__(self, items, bands, download_directory, stream, on_progress=None, on_error=None, on_add_layer=None, on_finished=None):
-        QThread.__init__(self)
-        self._running = True
-        self.items = items
-        self.bands = bands
-        self.download_directory = download_directory
-        self.stream = stream
-        self.on_progress=on_progress
-        self.on_error = on_error
-        self.on_add_layer = on_add_layer
-        self.on_finished=on_finished
-
-        self._current_item = None
-
-        self.progress_signal.connect(self.on_progress)
-        self.error_signal.connect(self.on_error)
-        self.add_layer_signal.connect(self.on_add_layer)
-        self.finished_signal.connect(self.on_finished)
-
-    def __del__(self):
-        self.wait()
-
-    def run(self):
-        for i, item in enumerate(self.items):
-            self._current_item = i
-            bands = []
-            for collection_band in self.bands:
-                if collection_band['collection'] == item.collection:
-                    bands = collection_band['bands']
-            try:
-                item.download(bands, self.download_directory, self.stream, on_update=self.on_update)
-                self.add_layer_signal.emit(i, len(self.items), item, self.download_directory)
-            except URLError as e:
-                self.error_signal.emit(item, e)
-        self.finished_signal.emit()
-
-    def on_update(self, state, data={}):
-        self.progress_signal.emit(self._current_item, len(self.items), state, data)
 

@@ -1,27 +1,23 @@
 import os
-import time
 
-from PyQt5.QtCore import QThread, pyqtSignal
-from PyQt5 import uic
-from PyQt5 import QtWidgets
-from PyQt5 import QtCore
-from PyQt5 import QtGui
+from PyQt5 import uic, QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import QFileDialog
 
 from ..models.item import Item
-from ..utils import network
+from ..utils import ui
+from ..threads.load_preview_thread import LoadPreviewThread
 
-from urllib.error import URLError
 
-FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'results_dialog.ui'))
-
+FORM_CLASS, _ = uic.loadUiType(ui.path('results_dialog.ui'))
 
 class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self, data={}, hooks={}, parent=None, iface=None):
         super(ResultsDialog, self).__init__(parent)
+
         self.data = data
         self.hooks = hooks
+        self.iface = iface
+
         self.setupUi(self)
 
         self._item_list_model = None
@@ -147,24 +143,3 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def on_back_clicked(self):
         self.hooks['on_back']()
-
-
-class LoadPreviewThread(QThread):
-    finished_signal = pyqtSignal(Item, bool)
-
-    def __init__(self, item, on_image_loaded=None):
-        QThread.__init__(self)
-        self.item = item
-        self.on_image_loaded=on_image_loaded
-
-        self.finished_signal.connect(self.on_image_loaded)
-
-    def __del__(self):
-        self.wait()
-
-    def run(self):
-        try:
-            network.download(self.item.thumbnail_url, self.item.thumbnail_path)
-            self.finished_signal.emit(self.item, False)
-        except URLError as e:
-            self.finished_signal.emit(self.item, True)
