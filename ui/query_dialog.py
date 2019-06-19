@@ -8,16 +8,18 @@ from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from PyQt5.QtWidgets import QTreeWidgetItem
 
 from qgis.core import QgsProject, QgsMapLayer
+from ..utils.logging import debug, info, warning, error
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'query_dialog.ui'))
 
 
 class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
-    def __init__(self, data={}, hooks={}, parent=None):
+    def __init__(self, data={}, hooks={}, parent=None, iface=None):
         super(QueryDialog, self).__init__(parent)
         self.data = data 
         self.hooks = hooks
+        self.iface = iface
         self.setupUi(self)
 
         self._extent_layers = None
@@ -57,6 +59,17 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
                 collection_node.setText(0, title)
                 collection_node.setFlags(collection_node.flags() | QtCore.Qt.ItemIsUserCheckable)
                 collection_node.setCheckState(0, QtCore.Qt.Unchecked)
+
+    def validate(self):
+        valid = True
+        if self.extentLayer.currentIndex() < 0:
+            error(self.iface, "Extent layer is not valid")
+            valid = False
+        start_time, end_time = self.time_period
+        if start_time > end_time:
+            error(self.iface, "Start time can not be after end time")
+            valid = False
+        return valid
 
     @property
     def catalog_selections(self):
@@ -104,6 +117,10 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
                 datetime.strptime(self.endPeriod.text(), '%Y-%m-%d %H:%MZ'))
 
     def on_search_clicked(self):
+        valid = self.validate()
+        if not valid:
+            return
+
         self.hooks['on_search'](self.catalog_selections,
                                 self.extent_layer,
                                 self.time_period)

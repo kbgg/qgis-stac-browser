@@ -9,6 +9,7 @@ from .ui.item_loading_dialog import ItemLoadingDialog
 from .ui.results_dialog import ResultsDialog
 from .ui.downloading_dialog import DownloadingDialog
 from .ui.select_bands_dialog import SelectBandsDialog
+from .utils.logging import debug, info, warning, error
 import os.path
 
 class STACBrowser:
@@ -37,7 +38,7 @@ class STACBrowser:
                     },
                     'ITEM_LOADING': {
                         'class': ItemLoadingDialog,
-                        'hooks': {'on_close': self.on_close, 'on_finished': self.item_load_finished},
+                        'hooks': {'on_close': self.on_close, 'on_finished': self.item_load_finished, 'on_error': self.results_error},
                         'data': None,
                         'dialog': None
                     },
@@ -102,13 +103,14 @@ class STACBrowser:
         window = self.windows.get(self.current_window, None)
 
         if window is None:
-            print(f'Window {self.current_window} does not exist')
+            logging.error(f'Window {self.current_window} does not exist')
             return
 
         if window['dialog'] is None:
             window['dialog'] = window.get('class')(data=window.get('data'), 
                                                    hooks=window.get('hooks'), 
-                                                   parent=self.iface.mainWindow())
+                                                   parent=self.iface.mainWindow(),
+                                                   iface=self.iface)
             window['dialog'].show()
         else:
             window['dialog'].raise_()
@@ -127,6 +129,13 @@ class STACBrowser:
         self.windows['QUERY']['data'] = { 'catalogs': [api.catalog for api in apis] }
         self.current_window = 'QUERY'
         self.windows['COLLECTION_LOADING']['dialog'].close()
+        self.load_window()
+
+    def results_error(self):
+        self.windows['ITEM_LOADING']['dialog'].close()
+        self.windows['ITEM_LOADING']['dialog'] = None
+        self.windows['ITEM_LOADING']['data'] = None
+        self.current_window = 'QUERY'
         self.load_window()
 
     def item_load_finished(self, items):

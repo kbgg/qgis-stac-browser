@@ -9,18 +9,22 @@ from PyQt5 import QtWidgets
 
 from qgis.core import QgsLogger
 from ..utils.config import Config
+from ..utils.logging import debug, info, warning, error
 from ..models.api import API
 from ..models.catalog import Catalog
+
+from urllib.error import URLError
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'collection_loading_dialog.ui'))
 
 
 class CollectionLoadingDialog(QtWidgets.QDialog, FORM_CLASS):
-    def __init__(self, data={}, hooks={}, parent=None):
+    def __init__(self, data={}, hooks={}, parent=None, iface=None):
         super(CollectionLoadingDialog, self).__init__(parent)
         self.data = data
         self.hooks = hooks
+        self.iface = iface
 
         self.setupUi(self)
 
@@ -29,6 +33,7 @@ class CollectionLoadingDialog(QtWidgets.QDialog, FORM_CLASS):
 
         self.loading_thread = LoadCollectionsThread(Config().get_api_list(),
                                                  on_progress=self.on_progress_update,
+                                                 on_error=self.on_error,
                                                  on_finished=self.on_loading_finished)
         
         self.loading_thread.start()
@@ -36,6 +41,9 @@ class CollectionLoadingDialog(QtWidgets.QDialog, FORM_CLASS):
     def on_progress_update(self, progress, api):
         self.label.setText(f'Loading {api}')
         self.progressBar.setValue(int(progress*100))
+
+    def on_error(self, e, api):
+        error(self.iface, f'Failed to load {api.href}; {e.reason}')
 
     def on_loading_finished(self, apis):
         self.progressBar.setValue(100)
@@ -48,16 +56,19 @@ class CollectionLoadingDialog(QtWidgets.QDialog, FORM_CLASS):
 
 class LoadCollectionsThread(QThread):
     progress_signal = pyqtSignal(float, str)
+    error_signal = pyqtSignal(Exception, API)
     finished_signal = pyqtSignal(list)
 
-    def __init__(self, api_list, on_progress=None, on_finished=None):
+    def __init__(self, api_list, on_progress=None, on_error=None, on_finished=None):
         QThread.__init__(self)
         self._running = True
         self.api_list = api_list
         self.on_progress=on_progress
+        self.on_error = on_error
         self.on_finished=on_finished
 
         self.progress_signal.connect(self.on_progress)
+        self.error_signal.connect(self.on_error)
         self.finished_signal.connect(self.on_finished)
 
     def run(self):
@@ -68,8 +79,11 @@ class LoadCollectionsThread(QThread):
             progress = (float(i) / float(len(self.api_list)))
             self.progress_signal.emit(progress, api_url)
             api = API(api_url)
-            api.catalog.load_collections()
-            apis.append(api)
+            try:
+                api.catalog.load_collections()
+                apis.append(api)
+            except URLError as e:
+                self.error_signal.emit(e, api)
         
         self.finished_signal.emit(apis)
         self.quit()

@@ -11,12 +11,14 @@ from PyQt5.QtWidgets import QFileDialog
 from ..models.item import Item
 from ..utils import network
 
+from urllib.error import URLError
+
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'results_dialog.ui'))
 
 
 class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
-    def __init__(self, data={}, hooks={}, parent=None):
+    def __init__(self, data={}, hooks={}, parent=None, iface=None):
         super(ResultsDialog, self).__init__(parent)
         self.data = data
         self.hooks = hooks
@@ -102,18 +104,22 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def select_item(self, item):
         self._selected_item = item
-        self.set_preview(item)
+        self.set_preview(item, False)
         self.populate_item_details(item)
 
-    def on_image_loaded(self, item):
+    def on_image_loaded(self, item, error):
         if self._selected_item != item:
             return
 
-        self.set_preview(item)
+        self.set_preview(item, error)
 
-    def set_preview(self, item):
+    def set_preview(self, item, error):
         if item.thumbnail_url is None:
             self.imageView.setText('No Preview Available')
+            return
+
+        if error:
+            self.imageView.setText('Error Loading Preview')
             return
 
         if not os.path.exists(item.thumbnail_path):
@@ -144,7 +150,7 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
 
 
 class LoadPreviewThread(QThread):
-    finished_signal = pyqtSignal(Item)
+    finished_signal = pyqtSignal(Item, bool)
 
     def __init__(self, item, on_image_loaded=None):
         QThread.__init__(self)
@@ -157,5 +163,8 @@ class LoadPreviewThread(QThread):
         self.wait()
 
     def run(self):
-        network.download(self.item.thumbnail_url, self.item.thumbnail_path)
-        self.finished_signal.emit(self.item)
+        try:
+            network.download(self.item.thumbnail_url, self.item.thumbnail_path)
+            self.finished_signal.emit(self.item, False)
+        except URLError as e:
+            self.finished_signal.emit(self.item, True)

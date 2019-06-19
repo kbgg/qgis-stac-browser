@@ -33,7 +33,7 @@ class API:
                     'page': page,
                     'limit': limit
                }
-
+    
         search_result = SearchResult(self, network.request(f'{self.href}/stac/search', data=body))
         
         items = search_result.items

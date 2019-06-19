@@ -17,15 +17,19 @@ from ..utils.config import Config
 from ..models.catalog import Catalog
 from ..models.item import Item
 
+from urllib.error import URLError
+from ..utils.logging import debug, info, warning, error
+
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'downloading_dialog.ui'))
 
 
 class DownloadingDialog(QtWidgets.QDialog, FORM_CLASS):
-    def __init__(self, data={}, hooks={}, parent=None):
+    def __init__(self, data={}, hooks={}, parent=None, iface=None):
         super(DownloadingDialog, self).__init__(parent)
         self.data = data
         self.hooks = hooks
+        self.iface = iface
 
         self.setupUi(self)
 
@@ -36,6 +40,7 @@ class DownloadingDialog(QtWidgets.QDialog, FORM_CLASS):
                                                   self.download_directory,
                                                   self.stream,
                                                   on_progress=self.on_progress_update,
+                                                  on_error=self.on_error,
                                                   on_add_layer=self.on_add_layer,
                                                   on_finished=self.on_downloading_finished)
         
@@ -56,6 +61,9 @@ class DownloadingDialog(QtWidgets.QDialog, FORM_CLASS):
     @property
     def stream(self):
         return self.data.get('stream', False)
+    
+    def on_error(self, item, e):
+        error(self.iface, f'Failed to load {item.id}; {e.reason}')
 
     def on_add_layer(self, current_item, total_items, item, download_directory):
         self.on_progress_update(current_item, total_items, 'ADDING_TO_LAYERS')
@@ -95,10 +103,11 @@ class DownloadingDialog(QtWidgets.QDialog, FORM_CLASS):
 
 class DownloadItemsThread(QThread):
     progress_signal = pyqtSignal(int, int, str, dict)
+    error_signal = pyqtSignal(Item, Exception)
     add_layer_signal = pyqtSignal(int, int, Item, str)
     finished_signal = pyqtSignal()
 
-    def __init__(self, items, bands, download_directory, stream, on_progress=None, on_add_layer=None, on_finished=None):
+    def __init__(self, items, bands, download_directory, stream, on_progress=None, on_error=None, on_add_layer=None, on_finished=None):
         QThread.__init__(self)
         self._running = True
         self.items = items
@@ -106,12 +115,14 @@ class DownloadItemsThread(QThread):
         self.download_directory = download_directory
         self.stream = stream
         self.on_progress=on_progress
+        self.on_error = on_error
         self.on_add_layer = on_add_layer
         self.on_finished=on_finished
 
         self._current_item = None
 
         self.progress_signal.connect(self.on_progress)
+        self.error_signal.connect(self.on_error)
         self.add_layer_signal.connect(self.on_add_layer)
         self.finished_signal.connect(self.on_finished)
 
@@ -125,8 +136,11 @@ class DownloadItemsThread(QThread):
             for collection_band in self.bands:
                 if collection_band['collection'] == item.collection:
                     bands = collection_band['bands']
-            item.download(bands, self.download_directory, self.stream, on_update=self.on_update)
-            self.add_layer_signal.emit(i, len(self.items), item, self.download_directory)
+            try:
+                item.download(bands, self.download_directory, self.stream, on_update=self.on_update)
+                self.add_layer_signal.emit(i, len(self.items), item, self.download_directory)
+            except URLError as e:
+                self.error_signal.emit(item, e)
         self.finished_signal.emit()
 
     def on_update(self, state, data={}):

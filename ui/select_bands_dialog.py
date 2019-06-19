@@ -13,7 +13,7 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 
 
 class SelectBandsDialog(QtWidgets.QDialog, FORM_CLASS):
-    def __init__(self, data={}, hooks={}, parent=None):
+    def __init__(self, data={}, hooks={}, parent=None, iface=None):
         super(SelectBandsDialog, self).__init__(parent)
         self.data = data 
         self.hooks = hooks
