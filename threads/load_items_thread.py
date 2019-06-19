@@ -6,12 +6,12 @@ class LoadItemsThread(QThread):
     error_signal = pyqtSignal(Exception)
     finished_signal = pyqtSignal(list)
 
-    def __init__(self, catalog_collections, extent, start_time, end_time,
+    def __init__(self, api_collections, extent, start_time, end_time,
                  on_progress=None, on_error=None, on_finished=None):
         QThread.__init__(self)
         self.current_page = 0
 
-        self.catalog_collections = catalog_collections
+        self.api_collections = api_collections
         self.extent = extent
         self.start_time = start_time
         self.end_time = end_time
@@ -27,16 +27,16 @@ class LoadItemsThread(QThread):
     def run(self):
         try:
             all_items = []
-            for catalog_collection in self.catalog_collections:
-                catalog = catalog_collection['catalog']
-                collections = catalog_collection['collections']
+            for api_collection in self.api_collections:
+                api = api_collection['api']
+                collections = api_collection['collections']
                 self._current_collections = collections
                 
-                items = catalog.api.search_items(collections,
-                                                 self.extent,
-                                                 self.start_time,
-                                                 self.end_time,
-                                                 on_next_page=self.on_next_page)
+                items = api.search_items(collections,
+                                         self.extent,
+                                         self.start_time,
+                                         self.end_time,
+                                         on_next_page=self.on_next_page)
                 all_items.extend(items)
             self.finished_signal.emit(all_items)
         except URLError as e:

@@ -1,9 +1,8 @@
 import os
 import json
+from ..models.api import API
 
 class Config:
-    STAC_APIS = ['https://stac.boundlessgeo.io', 'https://sat-api.developmentseed.org']
-
     def __init__(self):
         self._json = None
         self.load()
@@ -18,7 +17,7 @@ class Config:
 
     def save(self):
         config = {
-                    'apis': self.apis
+                    'apis': [api.json for api in self.apis]
                 }
         with open(self.path, 'w') as f:
             f.write(json.dumps(config))
@@ -32,6 +31,16 @@ class Config:
         apis = self._json.get('apis', None)
 
         if apis is None:
-            apis = self.STAC_APIS
+            apis = [
+                        {
+                            "href": "https://stac.boundlessgeo.io",
+                        },
+                        {
+                            "href": "https://sat-api.developmentseed.org",
+                        },
+                        {
+                            "href": "https://stac.astraea.earth/api/v2",
+                        }
+                    ]
 
-        return apis 
+        return [API(api) for api in apis]

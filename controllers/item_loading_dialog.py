@@ -19,7 +19,7 @@ class ItemLoadingDialog(QtWidgets.QDialog, FORM_CLASS):
         self.setupUi(self)
         self.setFixedSize(self.size())
 
-        self.loading_thread = LoadItemsThread(self.data['catalog_collections'],
+        self.loading_thread = LoadItemsThread(self.data['api_collections'],
                                               self.data['extent'],
                                               self.data['start_time'],
                                               self.data['end_time'],

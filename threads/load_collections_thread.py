@@ -21,14 +21,16 @@ class LoadCollectionsThread(QThread):
 
     def run(self):
         apis = []
-        for i, api_url in enumerate(self.api_list):
+        for i, api in enumerate(self.api_list):
             progress = (float(i) / float(len(self.api_list)))
-            self.progress_signal.emit(progress, api_url)
-            api = API(api_url)
-            try:
-                api.catalog.load_collections()
+            self.progress_signal.emit(progress, api.href)
+            if api.data is None:
+                try:
+                    api.load()
+                    apis.append(api)
+                except URLError as e:
+                    self.error_signal.emit(e, api)
+            else:
                 apis.append(api)
-            except URLError as e:
-                self.error_signal.emit(e, api)
         
         self.finished_signal.emit(apis)

@@ -1,8 +1,8 @@
 from .link import Link
 
 class Collection:
-    def __init__(self, catalog=None, json={}):
-        self._catalog = catalog
+    def __init__(self, api=None, json={}):
+        self._api = api
         self._json = json
 
     @property
@@ -59,8 +59,8 @@ class Collection:
         return bands
     
     @property
-    def catalog(self):
-        return self._catalog
+    def api(self):
+        return self._pi
 
     def __lt__(self, other):
         return self.title.lower() < other.title.lower()

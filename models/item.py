@@ -7,17 +7,17 @@ from pathlib import Path
 from ..utils import network
 
 class Item:
-    def __init__(self, catalog=None, json={}):
-        self._catalog = catalog
+    def __init__(self, api=None, json={}):
+        self._api = api
         self._json = json
 
     @property
     def hashed_id(self):
-        return hashlib.sha256(f'{self.catalog.api.href}/collections/{self.collection.id}/items/{self.id}'.encode('utf-8')).hexdigest()
+        return hashlib.sha256(f'{self.api.href}/collections/{self.collection.id}/items/{self.id}'.encode('utf-8')).hexdigest()
 
     @property
-    def catalog(self):
-        return self._catalog
+    def api(self):
+        return self._api
 
     @property
     def id(self):
@@ -57,7 +57,7 @@ class Item:
         if collection_id is None:
             collection_id = self._json.get('collection', None)
 
-        for collection in self.catalog.collections:
+        for collection in self.api.collections:
             if collection.id == collection_id:
                 return collection
 

@@ -56,14 +56,14 @@ class STACBrowser:
                     },
                 }
 
-    def on_search(self, catalog_collections, extent_layer, time_period):
+    def on_search(self, api_collections, extent_layer, time_period):
         (start_time, end_time) = time_period
 
         extent_rect = extent_layer.extent()
         extent = [extent_rect.xMinimum(), extent_rect.yMinimum(), extent_rect.xMaximum(), extent_rect.yMaximum()]
 
         self.windows['ITEM_LOADING']['data'] = {
-                    'catalog_collections': catalog_collections,
+                    'api_collections': api_collections,
                     'extent': extent,
                     'start_time': start_time,
                     'end_time': end_time
@@ -85,9 +85,6 @@ class STACBrowser:
             return
         self.reset_windows() 
 
-    def on_popup_close(self):
-        return
-
     def on_download(self, items, selected_bands, download_directory, stream):
         self.windows['DOWNLOADING']['data'] = { 'items': items, 'bands': selected_bands, 'download_directory': download_directory, 'stream': stream }
         self.current_window = 'DOWNLOADING'
@@ -99,34 +96,8 @@ class STACBrowser:
         self.current_window = 'COLLECTION_LOADING'
         self.reset_windows()
 
-    def load_window(self):
-        window = self.windows.get(self.current_window, None)
-
-        if window is None:
-            logging.error(f'Window {self.current_window} does not exist')
-            return
-
-        if window['dialog'] is None:
-            window['dialog'] = window.get('class')(data=window.get('data'), 
-                                                   hooks=window.get('hooks'), 
-                                                   parent=self.iface.mainWindow(),
-                                                   iface=self.iface)
-            window['dialog'].show()
-        else:
-            window['dialog'].raise_()
-            window['dialog'].show()
-            window['dialog'].activateWindow()
-    
-    def reset_windows(self):
-        for key, window in self.windows.items():
-            if window['dialog'] is not None:
-                window['dialog'].close()
-            window['data'] = None
-            window['dialog'] = None
-        self.current_window = 'COLLECTION_LOADING'
-
     def collection_load_finished(self, apis):
-        self.windows['QUERY']['data'] = { 'catalogs': [api.catalog for api in apis] }
+        self.windows['QUERY']['data'] = { 'apis': apis }
         self.current_window = 'QUERY'
         self.windows['COLLECTION_LOADING']['dialog'].close()
         self.load_window()
@@ -178,6 +149,32 @@ class STACBrowser:
         self.actions.append(action)
 
         return action
+
+    def load_window(self):
+        window = self.windows.get(self.current_window, None)
+
+        if window is None:
+            logging.error(f'Window {self.current_window} does not exist')
+            return
+
+        if window['dialog'] is None:
+            window['dialog'] = window.get('class')(data=window.get('data'), 
+                                                   hooks=window.get('hooks'), 
+                                                   parent=self.iface.mainWindow(),
+                                                   iface=self.iface)
+            window['dialog'].show()
+        else:
+            window['dialog'].raise_()
+            window['dialog'].show()
+            window['dialog'].activateWindow()
+    
+    def reset_windows(self):
+        for key, window in self.windows.items():
+            if window['dialog'] is not None:
+                window['dialog'].close()
+            window['data'] = None
+            window['dialog'] = None
+        self.current_window = 'COLLECTION_LOADING'
 
     def initGui(self):
         icon_path = ':/plugins/stac_browser/assets/icon.png'
