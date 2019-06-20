@@ -7,17 +7,17 @@ from pathlib import Path
 from ..utils import network
 
 class Item:
-    def __init__(self, catalog=None, json={}):
-        self._catalog = catalog
+    def __init__(self, api=None, json={}):
+        self._api = api
         self._json = json
 
     @property
     def hashed_id(self):
-        return hashlib.sha256(f'{self.catalog.api.href}/collections/{self.collection.id}/items/{self.id}'.encode('utf-8')).hexdigest()
+        return hashlib.sha256(f'{self.api.href}/collections/{self.collection.id}/items/{self.id}'.encode('utf-8')).hexdigest()
 
     @property
-    def catalog(self):
-        return self._catalog
+    def api(self):
+        return self._api
 
     @property
     def id(self):
@@ -45,9 +45,9 @@ class Item:
 
     @property
     def assets(self):
-        assets = {}
+        assets = []
         for key, d in self._json.get('assets', {}).items():
-            assets[key] = Asset(d)
+            assets.append(Asset(key, d, item=self))
 
         return assets
 
@@ -57,7 +57,7 @@ class Item:
         if collection_id is None:
             collection_id = self._json.get('collection', None)
 
-        for collection in self.catalog.collections:
+        for collection in self.api.collections:
             if collection.id == collection_id:
                 return collection
 
@@ -65,7 +65,10 @@ class Item:
 
     @property
     def thumbnail(self):
-        return self.assets.get('thumbnail', None)
+        for asset in self.assets:
+            if asset.key == 'thumbnail':
+                return asset
+        return None
 
     @property
     def thumbnail_url(self):
@@ -86,59 +89,74 @@ class Item:
     def thumbnail_path(self):
         return os.path.join(self.temp_dir, 'thumbnail.jpg')
 
-    @property
-    def vrt(self):
-        return os.path.join(self.temp_dir, 'asset.vrt')
-
-    @property
-    def bands(self):
-        bands = []
-        for k, band in self.collection.bands.items():
-            asset = self.assets.get(k, None)
-            if asset is not None:
-                bands.append(asset)
-
-        return bands
-
     def thumbnail_downloaded(self):
         return self._thumbnail is not None
 
-    def download(self, bands, download_directory, stream=False, on_update=None):
+    def download_steps(self, options):
+        steps = 0
+        
+        for asset_key in options.get('assets', []):
+            for asset in self.assets:
+                if asset.key != asset_key:
+                    continue
+
+                if options.get('stream_cogs', False) and asset.cog is not None:
+                    continue
+
+                steps += 1
+        
+        if options.get('add_to_layers', False):
+            steps += 1
+        return steps
+
+    def download(self, options, download_directory, on_update=None):
         item_download_directory = os.path.join(download_directory, self.id)
         if not os.path.exists(item_download_directory):
             os.makedirs(item_download_directory)
+        
+        raster_filenames = []
 
-        band_filenames = []
-        for band in bands:
-            asset = self.assets.get(band, None)
+        for asset_key in options.get('assets', []):
+            for asset in self.assets:
+                if asset.key != asset_key:
+                    continue
+                    
+                if options.get('stream_cogs', False) and asset.cog is not None:
+                    raster_filenames.append(asset.cog)
+                    continue
 
-            if asset is None:
-                print('!!! ASSET NOT FOUND !!!')
-                continue
+                if on_update is not None:
+                    on_update(f'Downloading {asset.href}')
+                
+                temp_filename = os.path.join(item_download_directory, asset.href.split('/')[-1])
+                if asset.is_raster:
+                    raster_filenames.append(temp_filename)
+                network.download(asset.href, temp_filename)
 
-            if stream and asset.cog is not None:
-                band_filenames.append(asset.cog)
-                continue
-            
+        if options.get('add_to_layers', False):
             if on_update is not None:
-                on_update('DOWNLOADING_BAND', data={'band': band, 'bands': bands})
-            
-            temp_filename = os.path.join(item_download_directory, asset.href.split('/')[-1])
-            band_filenames.append(temp_filename)
-            network.download(asset.href, temp_filename)
+                on_update(f'Building Virtual Raster...')
 
-        if on_update is not None:
-            on_update('BUILDING_VRT', data={'bands': bands})
-        arguments = ['gdalbuildvrt', '-separate', os.path.join(download_directory, f'{self.id}.vrt')]
-        arguments.extend(band_filenames)
-        subprocess.run(arguments)
+            arguments = ['gdalbuildvrt', '-separate', os.path.join(download_directory, f'{self.id}.vrt')]
+            arguments.extend(raster_filenames)
+            subprocess.run(arguments)
 
     def __lt__(self, other):
         return self.id < other.id
 
 class Asset:
-    def __init__(self, json={}):
+    def __init__(self, key, json={}, item=None):
+        self._key = key
         self._json = json
+        self._item = item
+
+    @property
+    def is_raster(self):
+        return (self._json.get('eo:name', None) is not None)
+
+    @property
+    def key(self):
+        return self._key
 
     @property
     def cog(self):
@@ -156,5 +174,40 @@ class Asset:
         return self._json.get('title', None)
 
     @property
+    def pretty_title(self):
+        if self.title is not None:
+            return self.title
+
+        return self.key
+
+    @property
     def type(self):
         return self._json.get('type', None)
+
+    @property
+    def band(self):
+        if self._item.collection is None:
+            return -1
+        
+        collection_bands = self._item.collection.properties.get('eo:bands', [])
+        
+        for i, c in enumerate(collection_bands):
+            if c.get('name', None) == self.key:
+                return i
+
+        return -1
+
+    def __lt__(self, other):
+        if self.band != -1 and other.band != -1:
+            return self.band < other.band
+
+        if self.band == -1 and other.band != -1:
+            return False
+
+        if self.band != -1 and other.band == -1:
+            return True
+        
+        if self.title is None or other.title is None:
+            return self.key.lower() < other.key.lower()
+
+        return self.title.lower() < other.title.lower()

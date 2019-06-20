@@ -1,8 +1,73 @@
+import os
+import json
+from ..models.api import API
+
 class Config:
-    STAC_APIS = ['https://stac.boundlessgeo.io', 'https://sat-api.developmentseed.org']
-
     def __init__(self):
-        pass
+        self._json = None
+        self.load()
 
-    def get_api_list(self):
-        return self.STAC_APIS
+    def load(self):
+        if not os.path.exists(self.path):
+            self._json = {}
+            self.save()
+        else:
+            with open(self.path, 'r') as f:
+                self._json = json.load(f)
+
+    def save(self):
+        config = {
+                    'apis': [api.json for api in self.apis],
+                    'download_directory': self.download_directory,
+                    'last_update': self.last_update,
+                    'api_update_interval': self.api_update_interval
+                }
+        with open(self.path, 'w') as f:
+            f.write(json.dumps(config))
+
+    @property
+    def path(self):
+        return os.path.join(os.path.split(os.path.dirname(__file__))[0], 'config.json')
+
+    @property
+    def apis(self):
+        apis = self._json.get('apis', None)
+
+        if apis is None:
+            apis = [
+                        {
+                            "href": "https://stac.boundlessgeo.io",
+                        },
+                        {
+                            "href": "https://sat-api.developmentseed.org",
+                        },
+                        {
+                            "href": "https://stac.astraea.earth/api/v2",
+                        }
+                    ]
+
+        return [API(api) for api in apis]
+
+    @apis.setter
+    def apis(self, apis):
+        self._json['apis'] = [api.json for api in apis]
+
+    @property
+    def last_update(self):
+        return self._json.get('last_update', None)
+
+    @property
+    def api_update_interval(self):
+        return self._json.get('api_update_interval', 60*60*24)
+
+    @last_update.setter
+    def last_update(self, value):
+        self._json['last_update'] = value
+
+    @property
+    def download_directory(self):
+        return self._json.get('download_directory', '')
+
+    @download_directory.setter
+    def download_directory(self, value):
+        self._json['download_directory'] = value

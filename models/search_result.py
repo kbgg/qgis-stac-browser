@@ -11,10 +11,6 @@ class SearchResult:
         return self._api
 
     @property
-    def catalog(self):
-        return self._api.catalog
-
-    @property
     def type(self):
         return self._json.get('type', None)
 
@@ -24,7 +20,7 @@ class SearchResult:
 
     @property
     def items(self):
-        return [Item(self.catalog, f) for f in self._json.get('features', [])]
+        return [Item(self.api, f) for f in self._json.get('features', [])]
 
     @property
     def links(self):

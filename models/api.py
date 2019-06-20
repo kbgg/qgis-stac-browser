@@ -1,25 +1,27 @@
 import re
 from urllib.parse import urlparse
 from .collection import Collection
-from .catalog import Catalog
+from .link import Link
 from .search_result import SearchResult
 from ..utils import network
 
 class API: 
-    def __init__(self, href=None):
-        self._href = href
-        self._catalog = None
+    def __init__(self, json=None):
+        self._json = json
+        self._data = self._json.get('data', None)
+        self._collections = [Collection(self, c) for c in self._json.get('collections', [])]
 
-    def load_catalog(self):
-        return Catalog(self, network.request(f'{self.href}/stac'))
+    def load(self):
+        self._data = network.request(f'{self.href}/stac')
+        self._collections = [self.load_collection(c) for c in self.collection_ids]
 
-    def load_collection(self, catalog, collection_id):
-        return Collection(catalog, network.request(f'{self.href}/collections/{collection_id}'))
+    def load_collection(self, collection_id):
+        return Collection(self, network.request(f'{self.href}/collections/{collection_id}'))
 
     def search_items(self, collections=[], bbox=[], start_time=None,
                      end_time=None, page=1, limit=50, on_next_page=None):
         if on_next_page is not None:
-            on_next_page()
+            on_next_page(self)
 
         if end_time is None:
             time = start_time.strftime('%Y-%m-%dT%H:%M:%SZ')
@@ -33,7 +35,7 @@ class API:
                     'page': page,
                     'limit': limit
                }
-
+    
         search_result = SearchResult(self, network.request(f'{self.href}/stac/search', data=body))
         
         items = search_result.items
@@ -54,13 +56,49 @@ class API:
         return m.groups()[0]
 
     @property
-    def href(self):
-        return self._href
-    
+    def json(self):
+        return {
+                    'href': self.href,
+                    'data': self.data,
+                    'collections': [c.json for c in self.collections],
+                }
+
     @property
-    def catalog(self):
-        if self._catalog is None:
-            self._catalog = self.load_catalog()
+    def title(self):
+        return self.data.get('title', None)
 
-        return self._catalog
+    @property
+    def href(self):
+        return self._json.get('href', None)
 
+    @property
+    def data(self):
+        return self._data
+
+    @property
+    def links(self):
+        return [Link(l) for l in self.data.get('links', [])]
+
+    @property
+    def collection_ids(self):
+        collection_ids = []
+        p = re.compile('\/collections\/(.*)')
+
+        for link in self.links:
+            m = p.match(urlparse(link.href).path)
+            if m is None:
+                continue
+
+            if m.groups() is None:
+                continue
+
+            collection_ids.append(m.groups()[0])
+        
+        return collection_ids
+
+    @property
+    def collections(self):
+        return self._collections
+    
+    def __lt__(self, other):
+        return self.title.lower() < other.title.lower()
