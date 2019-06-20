@@ -48,15 +48,17 @@ class DownloadController:
         if not self.loading_thread.isFinished:
             self.loading_thread.terminate()
 
-    def on_progress_update(self, current_step, total_steps, state, data={}):
+    def on_progress_update(self, current_step, total_steps, status):
         if self._progress_message_bar is None:
-            self._progress_message_bar = self.iface.messageBar().createMessage('Downloading Items...')
+            self._progress_message_bar = self.iface.messageBar().createMessage(status)
             self._progress_message_bar.destroyed.connect(self.on_destroyed)
             self._progress = QProgressBar()
             self._progress.setMaximum(total_steps)
             self._progress.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
             self._progress_message_bar.layout().addWidget(self._progress)
             self.iface.messageBar().pushWidget(self._progress_message_bar, Qgis.Info)
+        else:
+            self._progress_message_bar.setText(status)
                 
         self._progress.setValue(current_step-1)
 

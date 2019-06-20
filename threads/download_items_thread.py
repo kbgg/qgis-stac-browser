@@ -3,7 +3,7 @@ from urllib.error import URLError
 from ..models.item import Item
 
 class DownloadItemsThread(QThread):
-    progress_signal = pyqtSignal(int, int, str, dict)
+    progress_signal = pyqtSignal(int, int, str)
     error_signal = pyqtSignal(Item, Exception)
     add_layer_signal = pyqtSignal(int, int, Item, str)
     finished_signal = pyqtSignal()
@@ -18,7 +18,7 @@ class DownloadItemsThread(QThread):
         self.on_add_layer = on_add_layer
         self.on_finished=on_finished
 
-        self._current_item = None
+        self._current_item = 0
 
         self._current_step = 0
         self._total_steps = 0
@@ -33,7 +33,8 @@ class DownloadItemsThread(QThread):
         self.finished_signal.connect(self.on_finished)
 
     def run(self):
-        for download in self.downloads:
+        for i, download in enumerate(self.downloads):
+            self._current_item = i
             item = download['item']
             options = download['options']
             try:
@@ -44,6 +45,6 @@ class DownloadItemsThread(QThread):
                 self.error_signal.emit(item, e)
         self.finished_signal.emit()
 
-    def on_update(self, state, data={}):
+    def on_update(self, status):
         self._current_step += 1
-        self.progress_signal.emit(self._current_step, self._total_steps, state, data)
+        self.progress_signal.emit(self._current_step, self._total_steps, f'[{self._current_item + 1}/{len(self.downloads)}] {status}')

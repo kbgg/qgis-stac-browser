@@ -1,8 +1,9 @@
 from PyQt5.QtCore import QThread, pyqtSignal
 from urllib.error import URLError
+from ..models.api import API
 
 class LoadItemsThread(QThread):
-    progress_signal = pyqtSignal(list, int)
+    progress_signal = pyqtSignal(API, list, int)
     error_signal = pyqtSignal(Exception)
     finished_signal = pyqtSignal(list)
 
@@ -28,6 +29,7 @@ class LoadItemsThread(QThread):
         try:
             all_items = []
             for api_collection in self.api_collections:
+                self.current_page = 0
                 api = api_collection['api']
                 collections = api_collection['collections']
                 self._current_collections = collections
@@ -42,6 +44,6 @@ class LoadItemsThread(QThread):
         except URLError as e:
             self.error_signal.emit(e)
 
-    def on_next_page(self):
+    def on_next_page(self, api):
         self.current_page += 1
-        self.progress_signal.emit(self._current_collections, self.current_page)
+        self.progress_signal.emit(api, self._current_collections, self.current_page)

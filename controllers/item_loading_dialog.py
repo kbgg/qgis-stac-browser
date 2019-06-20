@@ -29,9 +29,9 @@ class ItemLoadingDialog(QtWidgets.QDialog, FORM_CLASS):
 
         self.loading_thread.start()
 
-    def on_progress(self, collections, current_page):
+    def on_progress(self, api, collections, current_page):
         collection_label = ', '.join([c.title for c in collections])
-        self.loadingLabel.setText(f'Searching {collection_label}\nPage {current_page}...')
+        self.loadingLabel.setText(f'Searching {api.title}\nCollections: [{collection_label}]\nPage {current_page}...')
 
     def on_error(self, e):
         error(self.iface, f'Network Error: {e.reason}')

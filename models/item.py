@@ -140,7 +140,7 @@ class Item:
                     continue
 
                 if on_update is not None:
-                    on_update('DOWNLOADING_ASSET', data={})
+                    on_update(f'Downloading {asset.href}')
                 
                 temp_filename = os.path.join(item_download_directory, asset.href.split('/')[-1])
                 if asset.is_raster:
@@ -149,7 +149,7 @@ class Item:
 
         if options.get('add_to_layers', False):
             if on_update is not None:
-                on_update('BUILDING_VRT', data={})
+                on_update(f'Building Virtual Raster...')
 
             arguments = ['gdalbuildvrt', '-separate', os.path.join(download_directory, f'{self.id}.vrt')]
             arguments.extend(raster_filenames)

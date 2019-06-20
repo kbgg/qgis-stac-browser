@@ -21,7 +21,7 @@ class API:
     def search_items(self, collections=[], bbox=[], start_time=None,
                      end_time=None, page=1, limit=50, on_next_page=None):
         if on_next_page is not None:
-            on_next_page()
+            on_next_page(self)
 
         if end_time is None:
             time = start_time.strftime('%Y-%m-%dT%H:%M:%SZ')
