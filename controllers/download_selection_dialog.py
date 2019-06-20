@@ -45,7 +45,7 @@ class DownloadSelectionDialog(QtWidgets.QDialog, FORM_CLASS):
         self.assetListWidget.clear()
         for asset in sorted(self.current_item.assets):
             asset_node = QtWidgets.QListWidgetItem(self.assetListWidget)
-            asset_node.setText(f'{asset.title}')
+            asset_node.setText(f'{asset.pretty_title}')
             asset_node.setFlags(asset_node.flags() | QtCore.Qt.ItemIsUserCheckable)
             asset_node.setCheckState(QtCore.Qt.Unchecked)
 

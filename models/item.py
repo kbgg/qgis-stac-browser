@@ -47,7 +47,7 @@ class Item:
     def assets(self):
         assets = []
         for key, d in self._json.get('assets', {}).items():
-            assets.append(Asset(key, d))
+            assets.append(Asset(key, d, item=self))
 
         return assets
 
@@ -88,20 +88,6 @@ class Item:
     @property
     def thumbnail_path(self):
         return os.path.join(self.temp_dir, 'thumbnail.jpg')
-
-    @property
-    def vrt(self):
-        return os.path.join(self.temp_dir, 'asset.vrt')
-
-    @property
-    def bands(self):
-        bands = []
-        for k, band in self.collection.bands.items():
-            asset = self.assets.get(k, None)
-            if asset is not None:
-                bands.append(asset)
-
-        return bands
 
     def thumbnail_downloaded(self):
         return self._thumbnail is not None
@@ -159,9 +145,10 @@ class Item:
         return self.id < other.id
 
 class Asset:
-    def __init__(self, key, json={}):
+    def __init__(self, key, json={}, item=None):
         self._key = key
         self._json = json
+        self._item = item
 
     @property
     def is_raster(self):
@@ -187,14 +174,40 @@ class Asset:
         return self._json.get('title', None)
 
     @property
+    def pretty_title(self):
+        if self.title is not None:
+            return self.title
+
+        return self.key
+
+    @property
     def type(self):
         return self._json.get('type', None)
 
-    def __lt__(self, other):
-        if self._json.get('eo:name', None) is None and other._json.get('eo:name', None) is not None:
-            return True
+    @property
+    def band(self):
+        if self._item.collection is None:
+            return -1
+        
+        collection_bands = self._item.collection.properties.get('eo:bands', [])
+        
+        for i, c in enumerate(collection_bands):
+            if c.get('name', None) == self.key:
+                return i
 
-        if self._json.get('eo:name', None) is not None and other._json.get('eo:name', None) is not None: 
-            return self._json.get('eo:name').lower() < other._json.get('eo:name').lower()
+        return -1
+
+    def __lt__(self, other):
+        if self.band != -1 and other.band != -1:
+            return self.band < other.band
+
+        if self.band == -1 and other.band != -1:
+            return False
+
+        if self.band != -1 and other.band == -1:
+            return True
+        
+        if self.title is None or other.title is None:
+            return self.key.lower() < other.key.lower()
 
         return self.title.lower() < other.title.lower()
