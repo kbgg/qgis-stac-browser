@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QFileDialog
 
 from ..models.item import Item
 from ..utils import ui
+from ..utils.config import Config
 from ..threads.load_preview_thread import LoadPreviewThread
 
 
@@ -22,8 +23,10 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
 
         self._item_list_model = None
         self._selected_item = None
+        self._config = Config()
 
         self.populate_item_list()
+        self.populate_download_directory()
         
         self.list.activated.connect(self.on_list_clicked)
         self.selectButton.clicked.connect(self.on_select_all_clicked)
@@ -41,6 +44,9 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
             self._item_list_model.appendRow(i)
 
         self.list.setModel(self._item_list_model)
+
+    def populate_download_directory(self):
+        self.downloadDirectory.setText(self._config.download_directory)
 
     def populate_item_details(self, item):
         property_keys = sorted(list(item.properties.keys()))
@@ -71,7 +77,7 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
         return self.downloadDirectory.text()
 
     def on_download_clicked(self):
-        self.hooks['select_bands'](self.selected_items, self.download_directory)
+        self.hooks['select_downloads'](self.selected_items, self.download_directory)
 
     def on_download_path_clicked(self):
         directory = QFileDialog.getExistingDirectory(self, 
@@ -79,7 +85,9 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
                                                      "", 
                                                      QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
         if directory:
-            self.downloadDirectory.setText(directory)
+            self._config.download_directory = directory
+            self._config.save()
+            self.populate_download_directory()
 
     def on_select_all_clicked(self):
         for i in range(self._item_list_model.rowCount()):

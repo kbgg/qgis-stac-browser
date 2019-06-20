@@ -45,9 +45,9 @@ class Item:
 
     @property
     def assets(self):
-        assets = {}
+        assets = []
         for key, d in self._json.get('assets', {}).items():
-            assets[key] = Asset(d)
+            assets.append(Asset(key, d))
 
         return assets
 
@@ -65,7 +65,10 @@ class Item:
 
     @property
     def thumbnail(self):
-        return self.assets.get('thumbnail', None)
+        for asset in self.assets:
+            if asset.key == 'thumbnail':
+                return asset
+        return None
 
     @property
     def thumbnail_url(self):
@@ -103,42 +106,70 @@ class Item:
     def thumbnail_downloaded(self):
         return self._thumbnail is not None
 
-    def download(self, bands, download_directory, stream=False, on_update=None):
+    def download_steps(self, options):
+        steps = 0
+        
+        for asset_key in options.get('assets', []):
+            for asset in self.assets:
+                if asset.key != asset_key:
+                    continue
+
+                if options.get('stream_cogs', False) and asset.cog is not None:
+                    continue
+
+                steps += 1
+        
+        if options.get('add_to_layers', False):
+            steps += 1
+        return steps
+
+    def download(self, options, download_directory, on_update=None):
         item_download_directory = os.path.join(download_directory, self.id)
         if not os.path.exists(item_download_directory):
             os.makedirs(item_download_directory)
+        
+        raster_filenames = []
 
-        band_filenames = []
-        for band in bands:
-            asset = self.assets.get(band, None)
+        for asset_key in options.get('assets', []):
+            for asset in self.assets:
+                if asset.key != asset_key:
+                    continue
+                    
+                if options.get('stream_cogs', False) and asset.cog is not None:
+                    raster_filenames.append(asset.cog)
+                    continue
 
-            if asset is None:
-                print('!!! ASSET NOT FOUND !!!')
-                continue
+                if on_update is not None:
+                    on_update('DOWNLOADING_ASSET', data={})
+                
+                temp_filename = os.path.join(item_download_directory, asset.href.split('/')[-1])
+                if asset.is_raster:
+                    raster_filenames.append(temp_filename)
+                network.download(asset.href, temp_filename)
 
-            if stream and asset.cog is not None:
-                band_filenames.append(asset.cog)
-                continue
-            
+        if options.get('add_to_layers', False):
             if on_update is not None:
-                on_update('DOWNLOADING_BAND', data={'band': band, 'bands': bands})
-            
-            temp_filename = os.path.join(item_download_directory, asset.href.split('/')[-1])
-            band_filenames.append(temp_filename)
-            network.download(asset.href, temp_filename)
+                on_update('BUILDING_VRT', data={})
 
-        if on_update is not None:
-            on_update('BUILDING_VRT', data={'bands': bands})
-        arguments = ['gdalbuildvrt', '-separate', os.path.join(download_directory, f'{self.id}.vrt')]
-        arguments.extend(band_filenames)
-        subprocess.run(arguments)
+            arguments = ['gdalbuildvrt', '-separate', os.path.join(download_directory, f'{self.id}.vrt')]
+            arguments.extend(raster_filenames)
+            subprocess.run(arguments)
 
     def __lt__(self, other):
         return self.id < other.id
 
 class Asset:
-    def __init__(self, json={}):
+    def __init__(self, key, json={}):
+        self._key = key
         self._json = json
+
+    @property
+    def is_raster(self):
+        return (self._json.get('eo:name', None) is not None)
+
+    @property
+    def key(self):
+        return self._key
 
     @property
     def cog(self):
@@ -158,3 +189,12 @@ class Asset:
     @property
     def type(self):
         return self._json.get('type', None)
+
+    def __lt__(self, other):
+        if self._json.get('eo:name', None) is None and other._json.get('eo:name', None) is not None:
+            return True
+
+        if self._json.get('eo:name', None) is not None and other._json.get('eo:name', None) is not None: 
+            return self._json.get('eo:name').lower() < other._json.get('eo:name').lower()
+
+        return self.title.lower() < other.title.lower()

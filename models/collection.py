@@ -6,6 +6,10 @@ class Collection:
         self._json = json
 
     @property
+    def json(self):
+        return self._json
+
+    @property
     def stac_version(self):
         return self._json.get('stac_version', None)
 

@@ -8,13 +8,11 @@ class DownloadItemsThread(QThread):
     add_layer_signal = pyqtSignal(int, int, Item, str)
     finished_signal = pyqtSignal()
 
-    def __init__(self, items, bands, download_directory, stream, on_progress=None, on_error=None, on_add_layer=None, on_finished=None):
+    def __init__(self, downloads, download_directory, on_progress=None, on_error=None, on_add_layer=None, on_finished=None):
         QThread.__init__(self)
 
-        self.items = items
-        self.bands = bands
+        self.downloads = downloads
         self.download_directory = download_directory
-        self.stream = stream
         self.on_progress=on_progress
         self.on_error = on_error
         self.on_add_layer = on_add_layer
@@ -22,24 +20,30 @@ class DownloadItemsThread(QThread):
 
         self._current_item = None
 
+        self._current_step = 0
+        self._total_steps = 0
+        for download in self.downloads:
+            item = download['item']
+            options = download['options']
+            self._total_steps += item.download_steps(options)
+
         self.progress_signal.connect(self.on_progress)
         self.error_signal.connect(self.on_error)
         self.add_layer_signal.connect(self.on_add_layer)
         self.finished_signal.connect(self.on_finished)
 
     def run(self):
-        for i, item in enumerate(self.items):
-            self._current_item = i
-            bands = []
-            for collection_band in self.bands:
-                if collection_band['collection'] == item.collection:
-                    bands = collection_band['bands']
+        for download in self.downloads:
+            item = download['item']
+            options = download['options']
             try:
-                item.download(bands, self.download_directory, self.stream, on_update=self.on_update)
-                self.add_layer_signal.emit(i, len(self.items), item, self.download_directory)
+                item.download(options, self.download_directory, on_update=self.on_update)
+                if options.get('add_to_layers', False):
+                    self.add_layer_signal.emit(self._current_step, self._total_steps, item, self.download_directory)
             except URLError as e:
                 self.error_signal.emit(item, e)
         self.finished_signal.emit()
 
     def on_update(self, state, data={}):
-        self.progress_signal.emit(self._current_item, len(self.items), state, data)
+        self._current_step += 1
+        self.progress_signal.emit(self._current_step, self._total_steps, state, data)

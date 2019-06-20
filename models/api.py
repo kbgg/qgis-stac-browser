@@ -9,7 +9,7 @@ class API:
     def __init__(self, json=None):
         self._json = json
         self._data = self._json.get('data', None)
-        self._collections = self._json.get('collections', None)
+        self._collections = [Collection(self, c) for c in self._json.get('collections', [])]
 
     def load(self):
         self._data = network.request(f'{self.href}/stac')
@@ -60,6 +60,7 @@ class API:
         return {
                     'href': self.href,
                     'data': self.data,
+                    'collections': [c.json for c in self.collections],
                 }
 
     @property

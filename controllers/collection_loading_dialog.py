@@ -1,3 +1,5 @@
+import time
+
 from PyQt5 import uic, QtWidgets
 
 from ..utils.config import Config
@@ -35,6 +37,11 @@ class CollectionLoadingDialog(QtWidgets.QDialog, FORM_CLASS):
         error(self.iface, f'Failed to load {api.href}; {e.reason}')
 
     def on_loading_finished(self, apis):
+        config = Config()
+        config.apis = apis
+        config.last_update = time.time()
+        config.save()
+
         self.progressBar.setValue(100)
         self.hooks['on_finished'](apis)
 
