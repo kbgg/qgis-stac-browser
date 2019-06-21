@@ -8,7 +8,7 @@ def request(url, data=None):
     if os.environ.get('STAC_DEBUG', False):
         context = ssl._create_unverified_context()
     else:
-        context = None
+        context = ssl.SSLContext()
 
     r = urllib.request.Request(url)
     if data is not None:
