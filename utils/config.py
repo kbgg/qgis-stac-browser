@@ -69,6 +69,8 @@ class Config:
 
     @property
     def download_directory(self):
+        if self._json.get('download_directory', None) is None:
+            return os.environ.get('HOME', '')
         return self._json.get('download_directory', '')
 
     @download_directory.setter
