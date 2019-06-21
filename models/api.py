@@ -58,21 +58,36 @@ class API:
     @property
     def json(self):
         return {
+                    'id': self.id,
                     'href': self.href,
                     'data': self.data,
                     'collections': [c.json for c in self.collections],
                 }
 
     @property
+    def id(self):
+        return self._json.get('id', None)
+
+    @property
     def title(self):
-        return self.data.get('title', None)
+        return self.data.get('title', self.href)
 
     @property
     def href(self):
         return self._json.get('href', None)
 
     @property
+    def version(self):
+        return self.data.get('stac_version', None)
+
+    @property
+    def description(self):
+        return self.data.get('description', None)
+
+    @property
     def data(self):
+        if self._data is None:
+            return {}
         return self._data
 
     @property

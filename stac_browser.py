@@ -12,6 +12,8 @@ from .controllers.item_loading_dialog import ItemLoadingDialog
 from .controllers.results_dialog import ResultsDialog
 from .controllers.downloading_controller import DownloadController
 from .controllers.download_selection_dialog import DownloadSelectionDialog
+from .controllers.configure_apis_dialog import ConfigureAPIDialog
+from .controllers.about_dialog import AboutDialog
 from .utils.config import Config
 from .utils.logging import debug, info, warning, error
 
@@ -206,12 +208,39 @@ class STACBrowser:
             window['dialog'] = None
         self.current_window = 'COLLECTION_LOADING'
 
+    def configure_apis(self):
+        dialog = ConfigureAPIDialog(data={ 'apis': Config().apis }, 
+                                    hooks={}, 
+                                    parent=self.iface.mainWindow(), 
+                                    iface=self.iface)
+        result = dialog.exec_()
+
+    def about(self):
+        dialog = AboutDialog(os.path.join(self.plugin_dir, 'about.html'), parent=self.iface.mainWindow(), iface=self.iface)
+        result = dialog.exec_()
+
     def initGui(self):
         icon_path = ':/plugins/stac_browser/assets/icon.png'
         self.add_action(
             icon_path,
             text='Browse STAC Catalogs',
             callback=self.load_window,
+            parent=self.iface.mainWindow())
+
+        icon_path = ':/plugins/stac_browser/assets/cog.svg'
+        self.add_action(
+            icon_path,
+            text='Configure APIs',
+            add_to_toolbar=False,
+            callback=self.configure_apis,
+            parent=self.iface.mainWindow())
+
+        icon_path = ':/plugins/stac_browser/assets/info.svg'
+        self.add_action(
+            icon_path,
+            text='About',
+            add_to_toolbar=False,
+            callback=self.about,
             parent=self.iface.mainWindow())
 
     def unload(self):
