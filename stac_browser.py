@@ -13,6 +13,7 @@ from .controllers.results_dialog import ResultsDialog
 from .controllers.downloading_controller import DownloadController
 from .controllers.download_selection_dialog import DownloadSelectionDialog
 from .controllers.configure_apis_dialog import ConfigureAPIDialog
+from .controllers.about_dialog import AboutDialog
 from .utils.config import Config
 from .utils.logging import debug, info, warning, error
 
@@ -215,7 +216,8 @@ class STACBrowser:
         result = dialog.exec_()
 
     def about(self):
-        return
+        dialog = AboutDialog(os.path.join(self.plugin_dir, 'about.html'), parent=self.iface.mainWindow(), iface=self.iface)
+        result = dialog.exec_()
 
     def initGui(self):
         icon_path = ':/plugins/stac_browser/assets/icon.png'
