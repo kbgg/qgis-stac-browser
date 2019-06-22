@@ -109,7 +109,7 @@ class Item:
             steps += 1
         return steps
 
-    def download(self, options, download_directory, on_update=None):
+    def download(self, gdal_path, options, download_directory, on_update=None):
         item_download_directory = os.path.join(download_directory, self.id)
         if not os.path.exists(item_download_directory):
             os.makedirs(item_download_directory)
@@ -137,7 +137,7 @@ class Item:
             if on_update is not None:
                 on_update(f'Building Virtual Raster...')
 
-            arguments = ['gdalbuildvrt', '-separate', os.path.join(download_directory, f'{self.id}.vrt')]
+            arguments = [os.path.join(gdal_path, 'gdalbuildvrt'), '-separate', os.path.join(download_directory, f'{self.id}.vrt')]
             arguments.extend(raster_filenames)
             subprocess.run(arguments)
 

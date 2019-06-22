@@ -22,6 +22,7 @@ class DownloadController:
         self.loading_thread = DownloadItemsThread(self.downloads,
                                                   self.download_directory,
                                                   on_progress=self.on_progress_update,
+                                                  on_gdal_error=self.on_gdal_error,
                                                   on_error=self.on_error,
                                                   on_add_layer=self.on_add_layer,
                                                   on_finished=self.on_downloading_finished)
@@ -35,6 +36,9 @@ class DownloadController:
     @property
     def download_directory(self):
         return self.data.get('download_directory', None)
+
+    def on_gdal_error(self, e):
+        error(self.iface, f'Unable to find \'gdalbuildvrt\' in current path')
 
     def on_error(self, item, e):
         error(self.iface, f'Failed to load {item.id}; {e.reason}')
