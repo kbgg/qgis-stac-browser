@@ -1,3 +1,4 @@
+import socket
 from PyQt5.QtCore import QThread, pyqtSignal
 from urllib.error import URLError
 from ..models.api import API
@@ -21,4 +22,6 @@ class LoadAPIDataThread(QThread):
             self.api.load()
             self.finished_signal.emit(self.api)
         except URLError as e:
+            self.error_signal.emit(e)
+        except socket.timeout as e:
             self.error_signal.emit(e)

@@ -1,4 +1,5 @@
 from PyQt5 import uic, QtWidgets
+import urllib
 
 from ..utils.config import Config
 from ..utils import ui
@@ -34,7 +35,10 @@ class ItemLoadingDialog(QtWidgets.QDialog, FORM_CLASS):
         self.loadingLabel.setText(f'Searching {api.title}\nCollections: [{collection_label}]\nPage {current_page}...')
 
     def on_error(self, e):
-        error(self.iface, f'Network Error: {e.reason}')
+        if type(e) == urllib.error.URLError:
+            error(self.iface, f'Network Error: {e.reason}')
+        else:
+            error(self.iface, f'Network Error: {type(e).__name__}')
         self.hooks['on_error']()
 
     def on_finished(self, items):

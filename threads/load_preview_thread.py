@@ -1,3 +1,4 @@
+import socket
 from PyQt5.QtCore import QThread, pyqtSignal
 from urllib.error import URLError
 from ..utils import network
@@ -18,4 +19,6 @@ class LoadPreviewThread(QThread):
             network.download(self.item.thumbnail_url, self.item.thumbnail_path)
             self.finished_signal.emit(self.item, False)
         except URLError as e:
+            self.finished_signal.emit(self.item, True)
+        except socket.timeout as e:
             self.finished_signal.emit(self.item, True)

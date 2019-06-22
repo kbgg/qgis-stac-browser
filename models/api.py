@@ -19,7 +19,10 @@ class API:
         return Collection(self, network.request(f'{self.href}/collections/{collection_id}'))
 
     def search_items(self, collections=[], bbox=[], start_time=None,
-                     end_time=None, page=1, limit=50, on_next_page=None):
+                     end_time=None, page=1, next_page=None, limit=50, on_next_page=None, page_limit=10):
+        if page > page_limit:
+            return []
+
         if on_next_page is not None:
             on_next_page(self)
 
@@ -32,15 +35,19 @@ class API:
                     'collections': [c.id for c in collections],
                     'bbox': bbox,
                     'time': time,
-                    'page': page,
                     'limit': limit
                }
+
+        if next_page is not None:
+            body['next'] = next_page
+        else:
+            body['page'] = page
     
         search_result = SearchResult(self, network.request(f'{self.href}/stac/search', data=body))
         
         items = search_result.items
         if len(items) >= limit:
-            items.extend(self.search_items(collections, bbox, start_time, end_time, page+1, limit, on_next_page=on_next_page))
+            items.extend(self.search_items(collections, bbox, start_time, end_time, page+1, search_result.next, limit, on_next_page=on_next_page))
 
         return items
      

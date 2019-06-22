@@ -1,4 +1,5 @@
 import time
+import urllib
 
 from PyQt5 import uic, QtWidgets
 
@@ -34,7 +35,10 @@ class CollectionLoadingDialog(QtWidgets.QDialog, FORM_CLASS):
         self.progressBar.setValue(int(progress*100))
 
     def on_error(self, e, api):
-        error(self.iface, f'Failed to load {api.href}; {e.reason}')
+        if type(e) == urllib.error.URLError:
+            error(self.iface, f'Failed to load {api.href}; {e.reason}')
+        else:
+            error(self.iface, f'Failed to load {api.href}; {type(e).__name__}')
 
     def on_loading_finished(self, apis):
         config = Config()

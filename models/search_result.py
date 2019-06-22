@@ -19,6 +19,13 @@ class SearchResult:
         return self._json.get('meta', None)
 
     @property
+    def next(self):
+        if self._json.get('search:metadata', None) is None:
+            return None
+
+        return self._json.get('search:metadata', {}).get('next', None)
+
+    @property
     def items(self):
         return [Item(self.api, f) for f in self._json.get('features', [])]
 
