@@ -1,4 +1,5 @@
 import os
+import urllib
 
 from qgis.core import QgsRasterLayer, QgsProject, Qgis
 
@@ -41,7 +42,10 @@ class DownloadController:
         error(self.iface, f'Unable to find \'gdalbuildvrt\' in current path')
 
     def on_error(self, item, e):
-        error(self.iface, f'Failed to load {item.id}; {e.reason}')
+        if type(e) == urllib.error.URLError:
+            error(self.iface, f'Failed to load {item.id}; {e.reason}')
+        else:
+            error(self.iface, f'Failed to load {item.id}; {type(e).__name__}')
 
     def on_add_layer(self, current_step, total_steps, item, download_directory):
         self.on_progress_update(current_step, total_steps, 'ADDING_TO_LAYERS')

@@ -1,3 +1,4 @@
+import socket
 from PyQt5.QtCore import QThread, pyqtSignal
 from urllib.error import URLError
 from ..models.item import Item
@@ -47,6 +48,8 @@ class DownloadItemsThread(QThread):
                 if options.get('add_to_layers', False):
                     self.add_layer_signal.emit(self._current_step, self._total_steps, item, self.download_directory)
             except URLError as e:
+                self.error_signal.emit(item, e)
+            except socket.timeout as e:
                 self.error_signal.emit(item, e)
             except FileNotFoundError as e:
                 self.gdal_error_signal.emit(e)

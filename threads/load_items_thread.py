@@ -1,3 +1,4 @@
+import socket
 from PyQt5.QtCore import QThread, pyqtSignal
 from urllib.error import URLError
 from ..models.api import API
@@ -42,6 +43,8 @@ class LoadItemsThread(QThread):
                 all_items.extend(items)
             self.finished_signal.emit(all_items)
         except URLError as e:
+            self.error_signal.emit(e)
+        except socket.timeout as e:
             self.error_signal.emit(e)
 
     def on_next_page(self, api):

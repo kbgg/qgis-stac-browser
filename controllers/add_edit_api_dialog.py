@@ -1,4 +1,5 @@
 import uuid
+import urllib
 
 from PyQt5 import uic, QtWidgets, QtGui
 
@@ -60,7 +61,10 @@ class AddEditAPIDialog(QtWidgets.QDialog, FORM_CLASS):
         else:
             self.saveAddButton.setText('Save')
         
-        error(self.iface, f'Connection Failed; {e.reason}')
+        if type(e) == urllib.error.URLError:
+            error(self.iface, f'Connection Failed; {e.reason}')
+        else:
+            error(self.iface, f'Connection Failed; {type(e).__name__}')
 
     def on_api_success(self, api):
         if self.api is None:
