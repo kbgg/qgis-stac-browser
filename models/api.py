@@ -67,7 +67,7 @@ class API:
         return items
 
     def collection_id_from_href(self, href):
-        p = re.compile('\/collections\/(.*)')
+        p = re.compile(r'\/collections\/(.*)')
         m = p.match(urlparse(href).path)
         if m is None:
             return None
@@ -119,7 +119,7 @@ class API:
     @property
     def collection_ids(self):
         collection_ids = []
-        p = re.compile('\/collections\/(.*)')
+        p = re.compile(r'\/collections\/(.*)')
 
         for link in self.links:
             m = p.match(urlparse(link.href).path)
