@@ -13,6 +13,31 @@ jobs:
     - run:
         name: Run lint
         command: flake8 --exclude=help/,venv/ --per-file-ignores='stac_browser.py:F401,F403'
+  build:
+    docker:
+    - image: circleci/python:3.6
+    working_directory: ~/qgis-stac-browser
+    resource_class: small
+    steps:
+    - checkout
+    - run:
+        name: Install pb_tool and PyQT5
+        command: sudo pip install pb_tool pyqt5
+    - run:
+        name: Make plugin directory
+        command: mkdir /home/circleci/plugin
+    - run:
+        name: Update pb_tool.cfg
+        command: "sed -i -e 's/plugin_path:/plugin_path: \\/home\\/circleci\\/plugin/' pb_tool.cfg"
+    - run:
+        name: Deploy Plugin
+        command: pb_tool deploy -y
+    - run:
+        name: Build Zip
+        command: pb_tool zip --quick
+    - store_artifacts:
+        path: ~/qgis-stac-browser/stac_browser.zip
+        destination: stac_browser.zip
 workflows:
   build:
     jobs:
