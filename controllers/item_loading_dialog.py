@@ -32,11 +32,11 @@ class ItemLoadingDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def on_progress(self, api, collections, current_page):
         collection_label = ', '.join([c.title for c in collections])
-        self.loadingLabel.setText(
-            f'''Searching {api.title}\n
-            Collections: [{collection_label}]\n
-            Page {current_page}...'''
-        )
+        self.loadingLabel.setText('\n'.join((
+            f'Searching {api.title}',
+            f'Collections: [{collection_label}]',
+            f'Page {current_page}...'
+        )))
 
     def on_error(self, e):
         if type(e) == urllib.error.URLError:

@@ -37,9 +37,9 @@ class API:
         if end_time is None:
             time = start_time.strftime('%Y-%m-%dT%H:%M:%SZ')
         else:
-            time = f'''{start_time.strftime("%Y-%m-%dT%H:%M:%SZ")}
-                       /
-                       {end_time.strftime("%Y-%m-%dT%H:%M:%SZ")}'''
+            start = start_time.strftime('%Y-%m-%dT%H:%M:%SZ')
+            end = end_time.strftime('%Y-%m-%dT%H:%M:%SZ')
+            time = f'{start}/{end}'
 
         body = {
             'collections': [c.id for c in collections],
