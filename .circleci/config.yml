@@ -42,4 +42,5 @@ workflows:
   build:
     jobs:
     - lint
+    - build
   version: 2
