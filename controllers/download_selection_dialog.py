@@ -1,26 +1,23 @@
 from PyQt5 import uic
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
-from PyQt5.QtGui import QStandardItemModel, QStandardItem
-
-from qgis.core import QgsProject, QgsMapLayer
 
 from ..utils import ui
-from pprint import pprint
 
 
 FORM_CLASS, _ = uic.loadUiType(ui.path('download_selection_dialog.ui'))
+
 
 class DownloadSelectionDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self, data={}, hooks={}, parent=None, iface=None):
         super(DownloadSelectionDialog, self).__init__(parent)
 
-        self.data = data 
+        self.data = data
         self.hooks = hooks
         self.iface = iface
 
         self.setupUi(self)
-        
+
         self._current_item_index = 0
         self._downloads = []
 
@@ -34,34 +31,39 @@ class DownloadSelectionDialog(QtWidgets.QDialog, FORM_CLASS):
             self.nextButton.setText('Download')
         else:
             self.nextButton.setText('Next')
-    
 
         collection_label = 'N/A'
         if self.current_item.collection is not None:
             collection_label = self.current_item.collection.id
         self.itemLabel.setText(self.current_item.id)
         self.collectionLabel.setText(collection_label)
-        
+
         self.assetListWidget.clear()
         for asset in sorted(self.current_item.assets):
             asset_node = QtWidgets.QListWidgetItem(self.assetListWidget)
             asset_node.setText(f'{asset.pretty_title}')
-            asset_node.setFlags(asset_node.flags() | QtCore.Qt.ItemIsUserCheckable)
+            asset_node.setFlags(
+                asset_node.flags() | QtCore.Qt.ItemIsUserCheckable
+            )
             asset_node.setCheckState(QtCore.Qt.Unchecked)
 
     def add_current_item_to_downloads(self):
-        apply_to_all = (self.applyAllCheckbox.checkState() == QtCore.Qt.Checked)
-        add_to_layers = (self.addLayersCheckbox.checkState() == QtCore.Qt.Checked)
+        apply_to_all = (
+            self.applyAllCheckbox.checkState() == QtCore.Qt.Checked
+        )
+        add_to_layers = (
+            self.addLayersCheckbox.checkState() == QtCore.Qt.Checked
+        )
         stream_cogs = (self.streamCheckbox.checkState() == QtCore.Qt.Checked)
 
         download_data = {
-                            'item': self.current_item,
-                            'options': {
-                                'add_to_layers': add_to_layers,
-                                'stream_cogs': stream_cogs,
-                                'assets': [a.key for a in self.selected_assets],
-                            },
-                }
+            'item': self.current_item,
+            'options': {
+                'add_to_layers': add_to_layers,
+                'stream_cogs': stream_cogs,
+                'assets': [a.key for a in self.selected_assets],
+            },
+        }
 
         self.downloads.append(download_data)
 
@@ -77,13 +79,13 @@ class DownloadSelectionDialog(QtWidgets.QDialog, FORM_CLASS):
 
             if self.items[i].collection == self.current_item.collection:
                 download_data = {
-                                    'item': self.items[i],
-                                    'options': {
-                                        'add_to_layers': add_to_layers,
-                                        'stream_cogs': stream_cogs,
-                                        'assets': [a.key for a in self.selected_assets],
-                                    },
-                                }
+                    'item': self.items[i],
+                    'options': {
+                        'add_to_layers': add_to_layers,
+                        'stream_cogs': stream_cogs,
+                        'assets': [a.key for a in self.selected_assets],
+                    },
+                }
                 self.downloads.append(download_data)
 
     def item_in_downloads(self, item):
@@ -152,7 +154,7 @@ class DownloadSelectionDialog(QtWidgets.QDialog, FORM_CLASS):
                 collection_band_list.append({
                     'collection': collection,
                     'bands': selected_bands
-                    })
+                })
 
         return collection_band_list
 
@@ -165,7 +167,7 @@ class DownloadSelectionDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def on_next_clicked(self):
         self.add_current_item_to_downloads()
-        
+
         self._current_item_index += 1
         while self.current_item is not None:
             if not self.item_in_downloads(self.current_item):

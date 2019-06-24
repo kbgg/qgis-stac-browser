@@ -3,13 +3,13 @@ import os
 from PyQt5 import uic, QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import QFileDialog
 
-from ..models.item import Item
 from ..utils import ui
 from ..utils.config import Config
 from ..threads.load_preview_thread import LoadPreviewThread
 
 
 FORM_CLASS, _ = uic.loadUiType(ui.path('results_dialog.ui'))
+
 
 class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self, data={}, hooks={}, parent=None, iface=None):
@@ -27,7 +27,7 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
 
         self.populate_item_list()
         self.populate_download_directory()
-        
+
         self.list.activated.connect(self.on_list_clicked)
         self.selectButton.clicked.connect(self.on_select_all_clicked)
         self.deselectButton.clicked.connect(self.on_deselect_all_clicked)
@@ -37,7 +37,7 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def populate_item_list(self):
         self._item_list_model = QtGui.QStandardItemModel(self.list)
-        
+
         for item in self.items:
             i = QtGui.QStandardItem(item.id)
             i.setCheckable(True)
@@ -56,9 +56,13 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
 
         for i, key in enumerate(property_keys):
             self.propertiesTable.setItem(i, 0, QtWidgets.QTableWidgetItem(key))
-            self.propertiesTable.setItem(i, 1, QtWidgets.QTableWidgetItem(str(item.properties[key])))
+            self.propertiesTable.setItem(
+                i,
+                1,
+                QtWidgets.QTableWidgetItem(str(item.properties[key]))
+            )
         self.propertiesTable.resizeColumnsToContents()
-    
+
     @property
     def items(self):
         return sorted(self.data.get('items', []))
@@ -77,13 +81,18 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
         return self.downloadDirectory.text()
 
     def on_download_clicked(self):
-        self.hooks['select_downloads'](self.selected_items, self.download_directory)
+        self.hooks['select_downloads'](
+            self.selected_items,
+            self.download_directory
+        )
 
     def on_download_path_clicked(self):
-        directory = QFileDialog.getExistingDirectory(self, 
-                                                     "Select Download Directory", 
-                                                     "", 
-                                                     QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
+        directory = QFileDialog.getExistingDirectory(
+            self,
+            "Select Download Directory",
+            "",
+            QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks
+        )
         if directory:
             self._config.download_directory = directory
             self._config.save()
@@ -93,7 +102,7 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
         for i in range(self._item_list_model.rowCount()):
             item = self._item_list_model.item(i)
             item.setCheckState(QtCore.Qt.Checked)
-    
+
     def on_deselect_all_clicked(self):
         for i in range(self._item_list_model.rowCount()):
             item = self._item_list_model.item(i)
@@ -128,15 +137,20 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
 
         if not os.path.exists(item.thumbnail_path):
             self.imageView.setText('Loading Preview...')
-            self.loading_thread = LoadPreviewThread(item, on_image_loaded=self.on_image_loaded)
+            self.loading_thread = LoadPreviewThread(
+                item,
+                on_image_loaded=self.on_image_loaded
+            )
             self.loading_thread.start()
             return
 
         image_profile = QtGui.QImage(item.thumbnail_path)
-        image_profile = image_profile.scaled(self.imageView.size().width(),
-                                             self.imageView.size().height(),
-                                             aspectRatioMode=QtCore.Qt.KeepAspectRatio,
-                                             transformMode=QtCore.Qt.SmoothTransformation)
+        image_profile = image_profile.scaled(
+            self.imageView.size().width(),
+            self.imageView.size().height(),
+            aspectRatioMode=QtCore.Qt.KeepAspectRatio,
+            transformMode=QtCore.Qt.SmoothTransformation
+        )
         self.imageView.setPixmap(QtGui.QPixmap.fromImage(image_profile))
 
     def resizeEvent(self, event):
@@ -144,7 +158,7 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
             return
 
         self.set_preview(self._selected_item)
-    
+
     def closeEvent(self, event):
         if event.spontaneous():
             self.hooks['on_close']()

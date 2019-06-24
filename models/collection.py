@@ -1,5 +1,6 @@
 from .link import Link
 
+
 class Collection:
     def __init__(self, api=None, json={}):
         self._api = api
@@ -57,11 +58,11 @@ class Collection:
     def bands(self):
         bands = {}
         for i, band in enumerate(self.properties.get('eo:bands', [])):
-            band['band'] = i+1
+            band['band'] = i + 1
             bands[band.get('name', None)] = band
 
         return bands
-    
+
     @property
     def api(self):
         return self._pi
@@ -102,4 +103,3 @@ class Provider:
     @property
     def url(self):
         return self._json.get('url', None)
-

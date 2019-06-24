@@ -3,6 +3,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 from urllib.error import URLError
 from ..models.api import API
 
+
 class LoadAPIDataThread(QThread):
     error_signal = pyqtSignal(Exception)
     finished_signal = pyqtSignal(API)
@@ -13,7 +14,7 @@ class LoadAPIDataThread(QThread):
 
         self.on_error = on_error
         self.on_finished = on_finished
-        
+
         self.error_signal.connect(self.on_error)
         self.finished_signal.connect(self.on_finished)
 

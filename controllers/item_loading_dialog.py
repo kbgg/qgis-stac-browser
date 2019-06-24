@@ -1,13 +1,13 @@
 from PyQt5 import uic, QtWidgets
 import urllib
 
-from ..utils.config import Config
 from ..utils import ui
-from ..utils.logging import debug, info, warning, error
+from ..utils.logging import error
 from ..threads.load_items_thread import LoadItemsThread
 
 
 FORM_CLASS, _ = uic.loadUiType(ui.path('item_loading_dialog.ui'))
+
 
 class ItemLoadingDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self, data={}, hooks={}, parent=None, iface=None):
@@ -32,7 +32,11 @@ class ItemLoadingDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def on_progress(self, api, collections, current_page):
         collection_label = ', '.join([c.title for c in collections])
-        self.loadingLabel.setText(f'Searching {api.title}\nCollections: [{collection_label}]\nPage {current_page}...')
+        self.loadingLabel.setText(
+            f'''Searching {api.title}\n
+            Collections: [{collection_label}]\n
+            Page {current_page}...'''
+        )
 
     def on_error(self, e):
         if type(e) == urllib.error.URLError:
@@ -48,4 +52,3 @@ class ItemLoadingDialog(QtWidgets.QDialog, FORM_CLASS):
         if event.spontaneous():
             self.loading_thread.terminate()
             self.hooks['on_close']()
-

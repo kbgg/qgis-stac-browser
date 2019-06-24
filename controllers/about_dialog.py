@@ -5,6 +5,7 @@ from ..utils import ui
 
 FORM_CLASS, _ = uic.loadUiType(ui.path('about_dialog.ui'))
 
+
 class AboutDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self, path=None, parent=None, iface=None):
         super(AboutDialog, self).__init__(parent)

@@ -1,6 +1,7 @@
 import os
 import subprocess
 
+
 def gdal_path():
     common_paths = [
         '',
@@ -10,10 +11,12 @@ def gdal_path():
 
     for common_path in common_paths:
         try:
-            subprocess.run([os.path.join(common_path, 'gdalbuildvrt'), '--version'])
+            subprocess.run([
+                os.path.join(common_path, 'gdalbuildvrt'),
+                '--version'
+            ])
             return common_path
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             continue
 
     return None
-
