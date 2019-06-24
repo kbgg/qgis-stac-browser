@@ -1,22 +1,23 @@
 from datetime import datetime
 
 from PyQt5 import uic, QtWidgets, QtCore
-from PyQt5.QtGui import QStandardItemModel, QStandardItem
+from PyQt5.QtGui import QStandardItemModel
 from PyQt5.QtWidgets import QTreeWidgetItem
 
 from qgis.core import QgsProject, QgsMapLayer
 
 from ..utils import ui
-from ..utils.logging import debug, info, warning, error
+from ..utils.logging import error
 
 
 FORM_CLASS, _ = uic.loadUiType(ui.path('query_dialog.ui'))
+
 
 class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self, data={}, hooks={}, parent=None, iface=None):
         super(QueryDialog, self).__init__(parent)
 
-        self.data = data 
+        self.data = data
         self.hooks = hooks
         self.iface = iface
 
@@ -38,7 +39,7 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def populate_extent_layers(self):
         self._extent_layers = []
-        
+
         layers = QgsProject.instance().mapLayers()
         for layer_key, layer in layers.items():
             if layer.type() in [QgsMapLayer.VectorLayer]:
@@ -52,15 +53,21 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
         for api in self.apis:
             api_node = QTreeWidgetItem(self.treeView)
             api_node.setText(0, f'{api.title}')
-            api_node.setFlags(api_node.flags() | QtCore.Qt.ItemIsTristate | QtCore.Qt.ItemIsUserCheckable)
+            api_node.setFlags(
+                api_node.flags()
+                | QtCore.Qt.ItemIsTristate
+                | QtCore.Qt.ItemIsUserCheckable
+            )
             api_node.setCheckState(0, QtCore.Qt.Unchecked)
             for collection in sorted(api.collections):
                 title = collection.title.replace("\n", " ")
                 collection_node = QTreeWidgetItem(api_node)
                 collection_node.setText(0, title)
-                collection_node.setFlags(collection_node.flags() | QtCore.Qt.ItemIsUserCheckable)
+                collection_node.setFlags(
+                    collection_node.flags() | QtCore.Qt.ItemIsUserCheckable
+                )
                 collection_node.setCheckState(0, QtCore.Qt.Unchecked)
-            
+
     def validate(self):
         valid = True
         if self.extentLayer.currentIndex() < 0:
@@ -86,11 +93,12 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
                 if collection_node.checkState(0) == QtCore.Qt.Checked:
                     selected_collections.append(collection)
 
-            if api_node.checkState(0) == QtCore.Qt.Checked or api_node.checkState(0) == QtCore.Qt.PartiallyChecked:
+            if api_node.checkState(0) == QtCore.Qt.Checked \
+                    or api_node.checkState(0) == QtCore.Qt.PartiallyChecked:
                 api_collections.append({
                     'api': api,
                     'collections': selected_collections
-                    })
+                })
         return api_collections
 
     @property

@@ -1,0 +1,20 @@
+version: 2
+jobs:
+  lint:
+    docker:
+    - image: circleci/python:3.6
+    working_directory: ~/qgis-stac-browser
+    resource_class: small
+    steps:
+    - checkout
+    - run:
+        name: Install flake8
+        command: sudo pip install flake8==3.7.7
+    - run:
+        name: Run lint
+        command: flake8 --exclude=help/,venv/ --per-file-ignores='stac_browser.py:F401,F403'
+workflows:
+  build:
+    jobs:
+    - lint
+  version: 2

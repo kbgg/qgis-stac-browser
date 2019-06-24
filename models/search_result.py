@@ -1,6 +1,7 @@
 from .item import Item
 from .link import Link
 
+
 class SearchResult:
     def __init__(self, api=None, json={}):
         self._api = api

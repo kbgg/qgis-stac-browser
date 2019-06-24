@@ -1,10 +1,10 @@
 import os
 import subprocess
 import hashlib
-import shutil
 import tempfile
-from pathlib import Path
 from ..utils import network
+from ..models.link import Link
+
 
 class Item:
     def __init__(self, api=None, json={}):
@@ -13,7 +13,10 @@ class Item:
 
     @property
     def hashed_id(self):
-        return hashlib.sha256(f'{self.api.href}/collections/{self.collection.id}/items/{self.id}'.encode('utf-8')).hexdigest()
+        return hashlib.sha256(
+            f'{self.api.href}/collections/{self.collection.id}/items/{self.id}'
+            .encode('utf-8')
+        ).hexdigest()
 
     @property
     def api(self):
@@ -79,7 +82,11 @@ class Item:
 
     @property
     def temp_dir(self):
-        temp_dir = os.path.join(tempfile.gettempdir(), 'qgis-stac-browser', self.hashed_id)
+        temp_dir = os.path.join(
+            tempfile.gettempdir(),
+            'qgis-stac-browser',
+            self.hashed_id
+        )
         if not os.path.exists(temp_dir):
             os.makedirs(temp_dir)
 
@@ -94,7 +101,7 @@ class Item:
 
     def download_steps(self, options):
         steps = 0
-        
+
         for asset_key in options.get('assets', []):
             for asset in self.assets:
                 if asset.key != asset_key:
@@ -104,7 +111,7 @@ class Item:
                     continue
 
                 steps += 1
-        
+
         if options.get('add_to_layers', False):
             steps += 1
         return steps
@@ -113,22 +120,25 @@ class Item:
         item_download_directory = os.path.join(download_directory, self.id)
         if not os.path.exists(item_download_directory):
             os.makedirs(item_download_directory)
-        
+
         raster_filenames = []
 
         for asset_key in options.get('assets', []):
             for asset in self.assets:
                 if asset.key != asset_key:
                     continue
-                    
+
                 if options.get('stream_cogs', False) and asset.cog is not None:
                     raster_filenames.append(asset.cog)
                     continue
 
                 if on_update is not None:
                     on_update(f'Downloading {asset.href}')
-                
-                temp_filename = os.path.join(item_download_directory, asset.href.split('/')[-1])
+
+                temp_filename = os.path.join(
+                    item_download_directory,
+                    asset.href.split('/')[-1]
+                )
                 if asset.is_raster:
                     raster_filenames.append(temp_filename)
                 network.download(asset.href, temp_filename)
@@ -137,12 +147,17 @@ class Item:
             if on_update is not None:
                 on_update(f'Building Virtual Raster...')
 
-            arguments = [os.path.join(gdal_path, 'gdalbuildvrt'), '-separate', os.path.join(download_directory, f'{self.id}.vrt')]
+            arguments = [
+                os.path.join(gdal_path, 'gdalbuildvrt'),
+                '-separate',
+                os.path.join(download_directory, f'{self.id}.vrt')
+            ]
             arguments.extend(raster_filenames)
             subprocess.run(arguments)
 
     def __lt__(self, other):
         return self.id < other.id
+
 
 class Asset:
     def __init__(self, key, json={}, item=None):
@@ -188,9 +203,9 @@ class Asset:
     def band(self):
         if self._item.collection is None:
             return -1
-        
+
         collection_bands = self._item.collection.properties.get('eo:bands', [])
-        
+
         for i, c in enumerate(collection_bands):
             if c.get('name', None) == self.key:
                 return i
@@ -206,7 +221,7 @@ class Asset:
 
         if self.band != -1 and other.band == -1:
             return True
-        
+
         if self.title is None or other.title is None:
             return self.key.lower() < other.key.lower()
 

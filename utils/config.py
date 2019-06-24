@@ -2,6 +2,7 @@ import os
 import json
 from ..models.api import API
 
+
 class Config:
     def __init__(self):
         self._json = None
@@ -17,17 +18,20 @@ class Config:
 
     def save(self):
         config = {
-                    'apis': [api.json for api in self.apis],
-                    'download_directory': self.download_directory,
-                    'last_update': self.last_update,
-                    'api_update_interval': self.api_update_interval
-                }
+            'apis': [api.json for api in self.apis],
+            'download_directory': self.download_directory,
+            'last_update': self.last_update,
+            'api_update_interval': self.api_update_interval
+        }
         with open(self.path, 'w') as f:
             f.write(json.dumps(config))
 
     @property
     def path(self):
-        return os.path.join(os.path.split(os.path.dirname(__file__))[0], 'config.json')
+        return os.path.join(
+            os.path.split(os.path.dirname(__file__))[0],
+            'config.json'
+        )
 
     @property
     def apis(self):
@@ -35,19 +39,19 @@ class Config:
 
         if apis is None:
             apis = [
-                        {
-                            "id": "default-staccato",
-                            "href": "https://stac.boundlessgeo.io",
-                        },
-                        {
-                            "id": "default-sat-api",
-                            "href": "https://sat-api.developmentseed.org",
-                        },
-                        {
-                            "id": "default-astraea",
-                            "href": "https://stac.astraea.earth/api/v2",
-                        }
-                    ]
+                {
+                    "id": "default-staccato",
+                    "href": "https://stac.boundlessgeo.io",
+                },
+                {
+                    "id": "default-sat-api",
+                    "href": "https://sat-api.developmentseed.org",
+                },
+                {
+                    "id": "default-astraea",
+                    "href": "https://stac.astraea.earth/api/v2",
+                }
+            ]
 
         return [API(api) for api in apis]
 
@@ -61,7 +65,7 @@ class Config:
 
     @property
     def api_update_interval(self):
-        return self._json.get('api_update_interval', 60*60*24)
+        return self._json.get('api_update_interval', 60 * 60 * 24)
 
     @last_update.setter
     def last_update(self, value):

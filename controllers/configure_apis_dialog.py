@@ -1,19 +1,19 @@
-from PyQt5 import uic, QtWidgets, QtGui
+from PyQt5 import uic, QtWidgets
 
 from ..utils import ui
 from ..utils.config import Config
-from ..utils.logging import debug, info, warning, error
 
 from ..controllers.add_edit_api_dialog import AddEditAPIDialog
 
 
 FORM_CLASS, _ = uic.loadUiType(ui.path('configure_apis_dialog.ui'))
 
+
 class ConfigureAPIDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self, data={}, hooks={}, parent=None, iface=None):
         super(ConfigureAPIDialog, self).__init__(parent)
 
-        self.data = data 
+        self.data = data
         self.hooks = hooks
         self.iface = iface
 
@@ -32,26 +32,30 @@ class ConfigureAPIDialog(QtWidgets.QDialog, FORM_CLASS):
         self.reject()
 
     def on_add_api_clicked(self):
-        dialog = AddEditAPIDialog(data={'api': None}, 
-                                  hooks={ 
-                                          "remove_api": self.remove_api, 
-                                          "add_api": self.add_api, 
-                                          "edit_api": self.edit_api
-                                        }, 
-                                  parent=self, 
-                                  iface=self.iface)
-        result = dialog.exec_()
+        dialog = AddEditAPIDialog(
+            data={'api': None},
+            hooks={
+                "remove_api": self.remove_api,
+                "add_api": self.add_api,
+                "edit_api": self.edit_api
+            },
+            parent=self,
+            iface=self.iface
+        )
+        dialog.exec_()
 
     def on_edit_api_clicked(self):
-        dialog = AddEditAPIDialog(data={'api': self.selected_api}, 
-                                  hooks={ 
-                                          "remove_api": self.remove_api, 
-                                          "add_api": self.add_api, 
-                                          "edit_api": self.edit_api
-                                        }, 
-                                  parent=self, 
-                                  iface=self.iface)
-        result = dialog.exec_()
+        dialog = AddEditAPIDialog(
+            data={'api': self.selected_api},
+            hooks={
+                "remove_api": self.remove_api,
+                "add_api": self.add_api,
+                "edit_api": self.edit_api
+            },
+            parent=self,
+            iface=self.iface
+        )
+        dialog.exec_()
 
     def edit_api(self, api):
         config = Config()
@@ -91,7 +95,7 @@ class ConfigureAPIDialog(QtWidgets.QDialog, FORM_CLASS):
 
         config.apis = new_apis
         config.save()
-        
+
         self.data['apis'] = config.apis
         self.populate_api_list()
         self.populate_api_details()
@@ -114,7 +118,7 @@ class ConfigureAPIDialog(QtWidgets.QDialog, FORM_CLASS):
             self.apiDescriptionValue.hide()
             self.apiEditButton.hide()
             return
-        
+
         self.apiUrlValue.setText(self.selected_api.href)
         self.apiTitleValue.setText(self.selected_api.title)
         self.apiVersionValue.setText(self.selected_api.version)
