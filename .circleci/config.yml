@@ -1,7 +1,124 @@
 version: 2.1
-orbs:
-    flake8: arrai/flake8@5.0.0
+commands:
+  lint:
+    description: Run flake8 on files with git diff
+    parameters:
+      working-directory: &working-directory
+        default: .
+        type: string
+        description: Directory path for this job
+      checkout: &checkout
+        default: true
+        type: boolean
+        description: Bool to checkout as a first step
+      attach-workspace: &attach-workspace
+        default: false
+        type: boolean
+        description: Bool to attach to an existing workspace
+      workspace-root: &workspace-root
+        default: .
+        type: string
+        description: Workspace root path
+      compare-to-pr-root: &compare-to-pr-root
+        default: true
+        type: boolean
+        description: Use GITHUB_API_TOKEN to find where pull is getting merged into and find all changed files
+
+    steps:
+      - when:
+          condition: << parameters.checkout >>
+          steps:
+            - checkout
+      - when:
+          condition: << parameters.attach-workspace >>
+          steps:
+            - attach_workspace:
+                at: << parameters.workspace-root >>
+
+      - when:
+          condition: << parameters.compare-to-pr-root >>
+          steps:
+            - run:
+                name: Find all files differing and then flake8
+                command: |
+                  if [[ -z "${CIRCLE_PULL_REQUEST}" ]]; then
+                    echo "No pull request. Skipping title validation."
+                    exit 0
+                  elif [[ -z "${GITHUB_API_TOKEN}" ]]; then
+                    echo "ERROR: No Github API token. Must have valid token to run job."
+                    exit 1
+                  fi
+
+                  sudo pip install flake8==3.7.7
+
+                  CIRCLE_PR_NUMBER=$(echo "import re; print re.findall(r'\d+$','${CIRCLE_PULL_REQUEST}')[0]" | python)
+                  URL="https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${CIRCLE_PR_NUMBER}"
+                  MERGE_TO_BRANCH=$(curl -s -X GET -G ${URL} -d access_token=${GITHUB_API_TOKEN} | jq '.base.ref' | tr -d '"')
+
+                  git checkout -q ${MERGE_TO_BRANCH}
+                  git reset --hard -q origin/${MERGE_TO_BRANCH}
+                  git checkout -q ${CIRCLE_BRANCH}
+                  echo "checked out ${CIRCLE_BRANCH} from ${MERGE_TO_BRANCH}"
+
+                  CHANGED_FILES=$(git diff --name-only ${MERGE_TO_BRANCH}..${CIRCLE_BRANCH} -- '*.py')
+                  echo ${CHANGED_FILES}
+                  echo ${CHANGED_FILES} | xargs --no-run-if-empty flake8
+
+      - unless:
+          condition: << parameters.compare-to-pr-root >>
+          steps:
+            - run:
+                name: Find most recent files differing and then flake8
+                command: |
+                  if [[ -z "$CIRCLE_PULL_REQUEST" ]]; then
+                    echo "ERROR: No pull request. Must have pull request associated with your code."
+                    exit 1
+                  fi
+
+                  sudo pip install flake8==3.7.7
+
+                  CHANGED_FILES=$(git diff --name-only ${CIRCLE_BRANCH}~1 -- '*.py')
+                  echo ${CHANGED_FILES}
+                  echo ${CHANGED_FILES} | xargs --no-run-if-empty flake8
+
+executors:
+  python-lint:
+    docker:
+      - image: circleci/python:<< parameters.pyversion >>
+    working_directory: << parameters.working-directory >>
+    parameters:
+      pyversion: &pyversion
+        default: '3.6'
+        description: Python version for executor
+        type: string
+      working-directory: *working-directory
+    resource_class: small
+
+jobs:
+  lint:
+    description: Lint python files
+
+    parameters:
+      pyversion: *pyversion
+      working-directory: *working-directory
+      checkout: *checkout
+      attach-workspace: *attach-workspace
+      workspace-root: *workspace-root
+      compare-to-pr-root: *compare-to-pr-root
+
+    executor:
+      name: python-lint
+      pyversion: << parameters.pyversion >>
+      working-directory: << parameters.working-directory >>
+
+    steps:
+      - lint:
+          working-directory: <<parameters.working-directory>>
+          checkout: << parameters.checkout >>
+          attach-workspace: << parameters.attach-workspace >>
+          workspace-root: << parameters.workspace-root >>
+          compare-to-pr-root: << parameters.compare-to-pr-root >>
 workflows:
-    Test:
+    build:
         jobs:
-            - flake8/flake8
+            - lint
