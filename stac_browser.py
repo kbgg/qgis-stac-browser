@@ -1,5 +1,6 @@
 import time
 import os.path
+import sys
 
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction
@@ -180,6 +181,9 @@ class STACBrowser:
         return action
 
     def load_window(self):
+        correct_version = self.check_version()
+        if not correct_version:
+            return
         if self.current_window == 'COLLECTION_LOADING':
             config = Config()
             if config.last_update is not None \
@@ -191,7 +195,7 @@ class STACBrowser:
         window = self.windows.get(self.current_window, None)
 
         if window is None:
-            error(f'Window {self.current_window} does not exist')
+            error(self.iface, f'Window {self.current_window} does not exist')
             return
 
         if window['dialog'] is None:
@@ -215,7 +219,27 @@ class STACBrowser:
             window['dialog'] = None
         self.current_window = 'COLLECTION_LOADING'
 
+    def check_version(self):
+        if sys.version_info < (3, 6):
+            v = '.'.join((
+                str(sys.version_info.major),
+                str(sys.version_info.minor),
+                str(sys.version_info.micro)
+            ))
+            error(
+                self.iface,
+                ''.join((
+                    'This plugin requires Python >= 3.6; ',
+                    f'You are running {v}'
+                ))
+            )
+            return False
+        return True
+
     def configure_apis(self):
+        correct_version = self.check_version()
+        if not correct_version:
+            return
         dialog = ConfigureAPIDialog(
             data={'apis': Config().apis},
             hooks={},
