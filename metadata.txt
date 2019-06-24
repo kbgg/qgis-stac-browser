@@ -10,7 +10,7 @@
 name=STAC Browser
 qgisMinimumVersion=3.0
 description=This plugin searches for and downloads assets from STAC catalogs
-version=0.1
+version=1.0.0
 author=Kevin Booth
 email=kevin@kb.gg
 
@@ -36,4 +36,5 @@ experimental=True
 
 # deprecated flag (applies to the whole plugin, not just a single version)
 deprecated=False
+
 
