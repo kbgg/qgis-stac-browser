@@ -17,6 +17,7 @@ class DownloadController:
         self.iface = iface
 
         self._progress_message_bar = None
+        self._loading_closed = False
 
         self.loading_thread = DownloadItemsThread(
             self.downloads,
@@ -60,10 +61,13 @@ class DownloadController:
         QgsProject.instance().addMapLayer(layer)
 
     def on_destroyed(self, event):
+        self._loading_closed = True
         if not self.loading_thread.isFinished:
             self.loading_thread.terminate()
 
     def on_progress_update(self, current_step, total_steps, status):
+        if self._loading_closed:
+            return
         if self._progress_message_bar is None:
             self._progress_message_bar = self.iface.messageBar().createMessage(
                 status
