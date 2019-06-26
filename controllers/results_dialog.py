@@ -115,6 +115,8 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
             item = self.items[i.row()]
             self.select_item(item)
 
+        self.downloadButton.setEnabled(len(self.selected_items) > 0)
+
     def select_item(self, item):
         self._selected_item = item
         self.set_preview(item, False)

@@ -179,6 +179,9 @@
          </item>
          <item>
           <widget class="QPushButton" name="downloadButton">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
            <property name="minimumSize">
             <size>
              <width>120</width>
