@@ -2,6 +2,8 @@ import os
 
 from PyQt5 import uic, QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtCore import QUrl
+from PyQt5.QtGui import QDesktopServices
 
 from ..utils import ui
 from ..utils.config import Config
@@ -34,6 +36,7 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
         self.downloadButton.clicked.connect(self.on_download_clicked)
         self.downloadPathButton.clicked.connect(self.on_download_path_clicked)
         self.backButton.clicked.connect(self.on_back_clicked)
+        self.previewExternalButton.clicked.connect(self.on_preview_external_clicked)
 
     def populate_item_list(self):
         self._item_list_model = QtGui.QStandardItemModel(self.list)
@@ -127,6 +130,8 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
         self.set_preview(item, error)
 
     def set_preview(self, item, error):
+        self.previewExternalButton.setEnabled(False)
+
         if item.thumbnail_url is None:
             self.imageView.setText('No Preview Available')
             return
@@ -152,6 +157,7 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
             transformMode=QtCore.Qt.SmoothTransformation
         )
         self.imageView.setPixmap(QtGui.QPixmap.fromImage(image_profile))
+        self.previewExternalButton.setEnabled(True)
 
     def resizeEvent(self, event):
         if self._selected_item is None:
@@ -165,3 +171,9 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def on_back_clicked(self):
         self.hooks['on_back']()
+
+    def on_preview_external_clicked(self):
+        assert self._selected_item
+        assert self._selected_item.thumbnail_path
+
+        QDesktopServices.openUrl(QUrl.fromLocalFile(self._selected_item.thumbnail_path))
