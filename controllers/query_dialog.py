@@ -4,7 +4,7 @@ from PyQt5 import uic, QtWidgets, QtCore
 from PyQt5.QtGui import QStandardItemModel
 from PyQt5.QtWidgets import QTreeWidgetItem
 
-from qgis.core import QgsProject, QgsMapLayer
+from qgis.core import QgsProject, QgsMapLayer, QgsMapLayerProxyModel
 
 from ..utils import ui
 from ..utils.logging import error
@@ -23,11 +23,11 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
 
         self.setupUi(self)
 
-        self._extent_layers = None
+        self.extentLayer.setFilters(QgsMapLayerProxyModel.VectorLayer | QgsMapLayerProxyModel.RasterLayer)
+
         self._api_tree_model = None
 
         self.populate_time_periods()
-        self.populate_extent_layers()
         self.populate_collection_list()
 
         self.searchButton.clicked.connect(self.on_search_clicked)
@@ -36,17 +36,6 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
     def populate_time_periods(self):
         now = QtCore.QDateTime.currentDateTimeUtc()
         self.endPeriod.setDateTime(now)
-
-    def populate_extent_layers(self):
-        self._extent_layers = []
-
-        layers = QgsProject.instance().mapLayers()
-        for layer_key, layer in layers.items():
-            if layer.type() in [QgsMapLayer.VectorLayer]:
-                self._extent_layers.append(layer)
-
-        for layer in self._extent_layers:
-            self.extentLayer.addItem(layer.name())
 
     def populate_collection_list(self):
         self._api_tree_model = QStandardItemModel(self.treeView)
@@ -107,10 +96,7 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
 
     @property
     def extent_layer(self):
-        if self.extentLayer.currentIndex() >= len(self._extent_layers):
-            return None
-
-        return self._extent_layers[self.extentLayer.currentIndex()]
+        return self.extentLayer.currentLayer()
 
     @property
     def time_period(self):
