@@ -101,8 +101,8 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
 
         directory = QFileDialog.getExistingDirectory(
             self,
-            "Select Download Directory",
-            "",
+            'Select Download Directory',
+            '',
             QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks
         )
         if directory:
