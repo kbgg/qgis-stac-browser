@@ -30,6 +30,8 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
         self.populate_time_periods()
         self.populate_collection_list()
 
+        self.selectAllCollectionsButton.clicked.connect(self.on_select_all_collections_clicked)
+        self.deselectAllCollectionsButton.clicked.connect(self.on_deselect_all_collections_clicked)
         self.searchButton.clicked.connect(self.on_search_clicked)
         self.cancelButton.clicked.connect(self.on_cancel_clicked)
 
@@ -115,6 +117,24 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
     def on_cancel_clicked(self):
         self.hooks['on_close']()
 
+    def on_select_all_collections_clicked(self):
+        self._toggle_all_collections_checked(True)
+
+    def on_deselect_all_collections_clicked(self):
+        self._toggle_all_collections_checked(False)
+
     def closeEvent(self, event):
         if event.spontaneous():
             self.hooks['on_close']()
+
+    def _toggle_all_collections_checked(self, checked):
+        state = QtCore.Qt.Checked if checked else QtCore.Qt.Unchecked
+
+        root = self.treeView.invisibleRootItem()
+        for i in range(root.childCount()):
+            api_node = root.child(i)
+            api_node.setCheckState(0, state)
+
+            for j in range(api_node.childCount()):
+                collection_node = api_node.child(j)
+                collection_node.setCheckState(0, state)
