@@ -4,7 +4,7 @@ from PyQt5 import uic, QtWidgets, QtCore
 from PyQt5.QtGui import QStandardItemModel
 from PyQt5.QtWidgets import QTreeWidgetItem
 
-from qgis.core import QgsProject, QgsMapLayer, QgsMapLayerProxyModel
+from qgis.core import QgsMapLayerProxyModel
 
 from ..utils import ui
 from ..utils.logging import error
