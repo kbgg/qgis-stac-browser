@@ -130,12 +130,13 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
 
     @QtCore.pyqtSlot(QtCore.QModelIndex)
     def on_list_clicked(self, index):
+        self.reset_footprint()
+
         items = self.list.selectedIndexes()
         for i in items:
             item = self.items[i.row()]
             self.select_item(item)
 
-        self.reset_footprint()
         self.update_download_enabled()
 
     def select_item(self, item):
@@ -210,16 +211,26 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
         if not item.geometry:
             return
 
-        parts = [[QgsPointXY(x, y) for [x, y] in part] for part in item.geometry['coordinates']]
+        geom = None
 
-        self._rubberband.setToGeometry(QgsGeometry.fromPolygonXY(parts), QgsCoordinateReferenceSystem(4326))
+        if item.geometry['type'] == 'Polygon':
+            parts = [[QgsPointXY(x, y) for [x, y] in part] for part in item.geometry['coordinates']]
+            geom = QgsGeometry.fromPolygonXY(parts)
+        elif item.geometry['type'] == 'MultiPolygon':
+            parts = [[[QgsPointXY(x, y) for [x, y] in part] for part in multi] for multi in item.geometry['coordinates']]
+            geom = QgsGeometry.fromMultiPolygonXY(parts)
+        else:
+            # unsupported geometry type
+            return
+
+        self._rubberband.setToGeometry(geom, QgsCoordinateReferenceSystem(4326))
         self._rubberband.show()
 
-        self.iface.mapCanvas().setExtent(self._rubberband.asGeometry().boundingBox())
-        self.iface.mapCanvas().refresh()
+        self.canvas.setExtent(geom.boundingBox())
+        self.canvas.refresh()
 
     def create_rubberband(self):
-        rubberband = QgsRubberBand(self.canvas)
+        rubberband = QgsRubberBand(self.canvas, True)
         rubberband.setColor(QColor(254, 178, 76, 63))
         rubberband.setWidth(1)
 
