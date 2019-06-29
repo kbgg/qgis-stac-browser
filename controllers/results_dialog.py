@@ -3,7 +3,10 @@ import os
 from PyQt5 import uic, QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtCore import QUrl
-from PyQt5.QtGui import QDesktopServices
+from PyQt5.QtGui import QDesktopServices, QColor
+
+from qgis.gui import QgsRubberBand, QgsMapCanvas
+from qgis.core import QgsWkbTypes, QgsPointXY, QgsGeometry, QgsCoordinateReferenceSystem
 
 from ..utils import ui
 from ..utils.config import Config
@@ -20,12 +23,14 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
         self.data = data
         self.hooks = hooks
         self.iface = iface
+        self.canvas = iface.mapCanvas()
 
         self.setupUi(self)
 
         self._item_list_model = None
         self._selected_item = None
         self._config = Config()
+        self._rubberband = self.create_rubberband()
 
         self.populate_item_list()
         self.populate_download_directory()
@@ -84,12 +89,16 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
         return self.downloadDirectory.text()
 
     def on_download_clicked(self):
+        self.reset_footprint()
+
         self.hooks['select_downloads'](
             self.selected_items,
             self.download_directory
         )
 
     def on_download_path_clicked(self):
+        self.reset_footprint()
+
         directory = QFileDialog.getExistingDirectory(
             self,
             "Select Download Directory",
@@ -102,17 +111,23 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
             self.populate_download_directory()
 
     def on_select_all_clicked(self):
+        self.reset_footprint()
+
         for i in range(self._item_list_model.rowCount()):
             item = self._item_list_model.item(i)
             item.setCheckState(QtCore.Qt.Checked)
 
     def on_deselect_all_clicked(self):
+        self.reset_footprint()
+
         for i in range(self._item_list_model.rowCount()):
             item = self._item_list_model.item(i)
             item.setCheckState(QtCore.Qt.Unchecked)
 
     @QtCore.pyqtSlot(QtCore.QModelIndex)
     def on_list_clicked(self, index):
+        self.reset_footprint()
+
         items = self.list.selectedIndexes()
         for i in items:
             item = self.items[i.row()]
@@ -122,6 +137,7 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
         self._selected_item = item
         self.set_preview(item, False)
         self.populate_item_details(item)
+        self.draw_footprint(item)
 
     def on_image_loaded(self, item, error):
         if self._selected_item != item:
@@ -130,8 +146,6 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
         self.set_preview(item, error)
 
     def set_preview(self, item, error):
-        self.previewExternalButton.setEnabled(False)
-
         if item.thumbnail_url is None:
             self.imageView.setText('No Preview Available')
             return
@@ -166,10 +180,14 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
         self.set_preview(self._selected_item)
 
     def closeEvent(self, event):
+        self.reset_footprint()
+
         if event.spontaneous():
             self.hooks['on_close']()
 
     def on_back_clicked(self):
+        self.reset_footprint()
+
         self.hooks['on_back']()
 
     def on_preview_external_clicked(self):
@@ -177,3 +195,27 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
         assert self._selected_item.thumbnail_path
 
         QDesktopServices.openUrl(QUrl.fromLocalFile(self._selected_item.thumbnail_path))
+
+    def reset_footprint(self):
+        self._rubberband.reset(QgsWkbTypes.PolygonGeometry)
+
+    def draw_footprint(self, item):
+        self._rubberband.reset(QgsWkbTypes.PolygonGeometry)
+
+        if not item.geometry:
+            return
+
+        parts = [[QgsPointXY(x, y) for [x, y] in part] for part in item.geometry['coordinates']]
+
+        self._rubberband.setToGeometry(QgsGeometry.fromPolygonXY(parts), QgsCoordinateReferenceSystem(4326))
+        self._rubberband.show()
+
+        self.iface.mapCanvas().setExtent(self._rubberband.asGeometry().boundingBox())
+        self.iface.mapCanvas().refresh()
+
+    def create_rubberband(self):
+        rubberband = QgsRubberBand(self.canvas)
+        rubberband.setColor(QColor(254, 178, 76, 63))
+        rubberband.setWidth(1)
+
+        return rubberband
