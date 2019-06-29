@@ -117,6 +117,8 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
             item = self._item_list_model.item(i)
             item.setCheckState(QtCore.Qt.Checked)
 
+        self.update_download_enabled()
+
     def on_deselect_all_clicked(self):
         self.reset_footprint()
 
@@ -124,14 +126,17 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
             item = self._item_list_model.item(i)
             item.setCheckState(QtCore.Qt.Unchecked)
 
+        self.update_download_enabled()
+
     @QtCore.pyqtSlot(QtCore.QModelIndex)
     def on_list_clicked(self, index):
-        self.reset_footprint()
-
         items = self.list.selectedIndexes()
         for i in items:
             item = self.items[i.row()]
             self.select_item(item)
+
+        self.reset_footprint()
+        self.update_download_enabled()
 
     def select_item(self, item):
         self._selected_item = item
@@ -219,3 +224,7 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
         rubberband.setWidth(1)
 
         return rubberband
+
+    def update_download_enabled(self):
+        enabled = bool(len(self.selected_items) > 0)
+        self.downloadButton.setEnabled(enabled)
