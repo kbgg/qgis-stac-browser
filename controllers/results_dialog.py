@@ -182,7 +182,7 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
         if self._selected_item is None:
             return
 
-        self.set_preview(self._selected_item)
+        self.set_preview(self._selected_item, None)
 
     def closeEvent(self, event):
         self.reset_footprint()
