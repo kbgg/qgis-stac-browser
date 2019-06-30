@@ -151,7 +151,7 @@
             <bool>false</bool>
            </property>
            <property name="toolTip">
-            <string>Opens the preview image in the preffered external image viewere</string>
+            <string>Opens the preview image in the preffered external image viewer</string>
            </property>
            <property name="text">
             <string>External Preview</string>
