@@ -1,5 +1,8 @@
 resources.py
 
+# the plugin configuration file
+config.json
+
 
 # Created by https://www.gitignore.io/api/osx,linux,python,windows
 # Edit at https://www.gitignore.io/?templates=osx,linux,python,windows
