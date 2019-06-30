@@ -5,8 +5,9 @@ from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices, QColor
 
-from qgis.gui import QgsRubberBand, QgsMapCanvas
-from qgis.core import QgsWkbTypes, QgsPointXY, QgsGeometry, QgsCoordinateReferenceSystem
+from qgis.gui import QgsRubberBand
+from qgis.core import QgsWkbTypes, QgsPointXY, QgsGeometry, \
+    QgsCoordinateReferenceSystem
 
 from ..utils import ui
 from ..utils.config import Config
@@ -41,7 +42,8 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
         self.downloadButton.clicked.connect(self.on_download_clicked)
         self.downloadPathButton.clicked.connect(self.on_download_path_clicked)
         self.backButton.clicked.connect(self.on_back_clicked)
-        self.previewExternalButton.clicked.connect(self.on_preview_external_clicked)
+        self.previewExternalButton.clicked.connect(
+            self.on_preview_external_clicked)
 
     def populate_item_list(self):
         self._item_list_model = QtGui.QStandardItemModel(self.list)
@@ -200,7 +202,8 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
         assert self._selected_item
         assert self._selected_item.thumbnail_path
 
-        QDesktopServices.openUrl(QUrl.fromLocalFile(self._selected_item.thumbnail_path))
+        QDesktopServices.openUrl(QUrl.fromLocalFile(
+            self._selected_item.thumbnail_path))
 
     def reset_footprint(self):
         self._rubberband.reset(QgsWkbTypes.PolygonGeometry)
@@ -214,16 +217,19 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
         geom = None
 
         if item.geometry['type'] == 'Polygon':
-            parts = [[QgsPointXY(x, y) for [x, y] in part] for part in item.geometry['coordinates']]
+            parts = [[QgsPointXY(x, y) for [x, y] in part]
+                     for part in item.geometry['coordinates']]
             geom = QgsGeometry.fromPolygonXY(parts)
         elif item.geometry['type'] == 'MultiPolygon':
-            parts = [[[QgsPointXY(x, y) for [x, y] in part] for part in multi] for multi in item.geometry['coordinates']]
+            parts = [[[QgsPointXY(x, y) for [x, y] in part] for part in multi]
+                     for multi in item.geometry['coordinates']]
             geom = QgsGeometry.fromMultiPolygonXY(parts)
         else:
             # unsupported geometry type
             return
 
-        self._rubberband.setToGeometry(geom, QgsCoordinateReferenceSystem(4326))
+        self._rubberband.setToGeometry(
+            geom, QgsCoordinateReferenceSystem(4326))
         self._rubberband.show()
 
         self.canvas.setExtent(geom.boundingBox())

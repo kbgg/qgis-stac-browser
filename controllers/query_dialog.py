@@ -23,15 +23,19 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
 
         self.setupUi(self)
 
-        self.extentLayer.setFilters(QgsMapLayerProxyModel.VectorLayer | QgsMapLayerProxyModel.RasterLayer)
+        self.extentLayer.setFilters(
+            QgsMapLayerProxyModel.VectorLayer
+            | QgsMapLayerProxyModel.RasterLayer)
 
         self._api_tree_model = None
 
         self.populate_time_periods()
         self.populate_collection_list()
 
-        self.selectAllCollectionsButton.clicked.connect(self.on_select_all_collections_clicked)
-        self.deselectAllCollectionsButton.clicked.connect(self.on_deselect_all_collections_clicked)
+        self.selectAllCollectionsButton.clicked.connect(
+            self.on_select_all_collections_clicked)
+        self.deselectAllCollectionsButton.clicked.connect(
+            self.on_deselect_all_collections_clicked)
         self.searchButton.clicked.connect(self.on_search_clicked)
         self.cancelButton.clicked.connect(self.on_cancel_clicked)
 
