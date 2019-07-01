@@ -4,7 +4,7 @@ from PyQt5 import uic, QtWidgets, QtCore
 from PyQt5.QtGui import QStandardItemModel
 from PyQt5.QtWidgets import QTreeWidgetItem
 
-from qgis.core import QgsProject, QgsMapLayer
+from qgis.core import QgsMapLayerProxyModel
 
 from ..utils import ui
 from ..utils.logging import error
@@ -23,30 +23,25 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
 
         self.setupUi(self)
 
-        self._extent_layers = None
+        self.extentLayer.setFilters(
+            QgsMapLayerProxyModel.VectorLayer
+            | QgsMapLayerProxyModel.RasterLayer)
+
         self._api_tree_model = None
 
         self.populate_time_periods()
-        self.populate_extent_layers()
         self.populate_collection_list()
 
+        self.selectAllCollectionsButton.clicked.connect(
+            self.on_select_all_collections_clicked)
+        self.deselectAllCollectionsButton.clicked.connect(
+            self.on_deselect_all_collections_clicked)
         self.searchButton.clicked.connect(self.on_search_clicked)
         self.cancelButton.clicked.connect(self.on_cancel_clicked)
 
     def populate_time_periods(self):
         now = QtCore.QDateTime.currentDateTimeUtc()
         self.endPeriod.setDateTime(now)
-
-    def populate_extent_layers(self):
-        self._extent_layers = []
-
-        layers = QgsProject.instance().mapLayers()
-        for layer_key, layer in layers.items():
-            if layer.type() in [QgsMapLayer.VectorLayer]:
-                self._extent_layers.append(layer)
-
-        for layer in self._extent_layers:
-            self.extentLayer.addItem(layer.name())
 
     def populate_collection_list(self):
         self._api_tree_model = QStandardItemModel(self.treeView)
@@ -107,10 +102,7 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
 
     @property
     def extent_layer(self):
-        if self.extentLayer.currentIndex() >= len(self._extent_layers):
-            return None
-
-        return self._extent_layers[self.extentLayer.currentIndex()]
+        return self.extentLayer.currentLayer()
 
     @property
     def time_period(self):
@@ -129,6 +121,24 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
     def on_cancel_clicked(self):
         self.hooks['on_close']()
 
+    def on_select_all_collections_clicked(self):
+        self._toggle_all_collections_checked(True)
+
+    def on_deselect_all_collections_clicked(self):
+        self._toggle_all_collections_checked(False)
+
     def closeEvent(self, event):
         if event.spontaneous():
             self.hooks['on_close']()
+
+    def _toggle_all_collections_checked(self, checked):
+        state = QtCore.Qt.Checked if checked else QtCore.Qt.Unchecked
+
+        root = self.treeView.invisibleRootItem()
+        for i in range(root.childCount()):
+            api_node = root.child(i)
+            api_node.setCheckState(0, state)
+
+            for j in range(api_node.childCount()):
+                collection_node = api_node.child(j)
+                collection_node.setCheckState(0, state)

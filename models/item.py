@@ -94,6 +94,9 @@ class Item:
 
     @property
     def thumbnail_path(self):
+        if not self.collection:
+            return
+
         return os.path.join(self.temp_dir, 'thumbnail.jpg')
 
     def thumbnail_downloaded(self):
