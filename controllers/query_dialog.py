@@ -2,12 +2,13 @@ from datetime import datetime
 
 from PyQt5 import uic, QtWidgets, QtCore
 from PyQt5.QtGui import QStandardItemModel
-from PyQt5.QtWidgets import QTreeWidgetItem
+from PyQt5.QtWidgets import (QTreeWidgetItem, QFormLayout)
 
 from qgis.core import QgsMapLayerProxyModel
 
 from ..utils import ui
 from ..utils.logging import error
+from .extent_selector import ExtentSelector
 
 
 FORM_CLASS, _ = uic.loadUiType(ui.path('query_dialog.ui'))
@@ -23,11 +24,15 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
 
         self.setupUi(self)
 
-        self.extentLayer.setFilters(
-            QgsMapLayerProxyModel.VectorLayer
-            | QgsMapLayerProxyModel.RasterLayer)
-
         self._api_tree_model = None
+
+        self.extentSelector = ExtentSelector(parent=self,
+                                             iface=iface,
+                                             filters=QgsMapLayerProxyModel.VectorLayer
+                                             | QgsMapLayerProxyModel.RasterLayer)
+        self.filterLayout.setWidget(0, QFormLayout.FieldRole, self.extentSelector)
+
+        self.extentSelector.show()
 
         self.populate_time_periods()
         self.populate_collection_list()
@@ -65,7 +70,8 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def validate(self):
         valid = True
-        if self.extentLayer.currentIndex() < 0:
+
+        if not self.extentSelector.is_valid():
             error(self.iface, "Extent layer is not valid")
             valid = False
         start_time, end_time = self.time_period
@@ -101,8 +107,8 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
         return sorted(self.data.get('apis', []))
 
     @property
-    def extent_layer(self):
-        return self.extentLayer.currentLayer()
+    def extent_rect(self):
+        return self.extentSelector.value()
 
     @property
     def time_period(self):
@@ -115,7 +121,7 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
             return
 
         self.hooks['on_search'](self.api_selections,
-                                self.extent_layer,
+                                self.extent_rect,
                                 self.time_period)
 
     def on_cancel_clicked(self):

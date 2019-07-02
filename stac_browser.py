@@ -5,6 +5,8 @@ import sys
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction
 
+from qgis.core import (QgsCoordinateTransform, QgsCoordinateReferenceSystem,
+                       QgsProject)
 from .resources import *
 from .controllers.collection_loading_dialog import CollectionLoadingDialog
 from .controllers.query_dialog import QueryDialog
@@ -71,10 +73,19 @@ class STACBrowser:
             },
         }
 
-    def on_search(self, api_collections, extent_layer, time_period):
+    def on_search(self, api_collections, extent_rect, time_period):
         (start_time, end_time) = time_period
 
-        extent_rect = extent_layer.extent()
+        # the API consumes only EPSG:4326
+        transform = QgsCoordinateTransform(
+            extent_rect.crs(),
+            QgsCoordinateReferenceSystem(4326),
+            QgsProject.instance())
+
+        assert transform.isValid()
+
+        extent_rect = transform.transform(extent_rect)
+
         extent = [
             extent_rect.xMinimum(),
             extent_rect.yMinimum(),
