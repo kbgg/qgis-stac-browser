@@ -71,7 +71,7 @@
      <item>
       <layout class="QVBoxLayout" name="verticalLayout">
        <item>
-        <layout class="QFormLayout" name="formLayout_2">
+        <layout class="QFormLayout" name="filterLayout">
          <item row="0" column="0">
           <widget class="QLabel" name="extentLabel">
            <property name="text">
@@ -80,20 +80,73 @@
           </widget>
          </item>
          <item row="1" column="0">
-          <widget class="QLabel" name="label_2">
+          <widget class="QLabel" name="label">
            <property name="text">
-            <string>Start Time Period</string>
+            <string>Cloud Cover</string>
            </property>
           </widget>
          </item>
          <item row="1" column="1">
+          <layout class="QHBoxLayout" name="horizontalLayout_5">
+           <property name="spacing">
+            <number>6</number>
+           </property>
+           <item>
+            <widget class="QDoubleSpinBox" name="cloudCoverMinSpin">
+             <property name="prefix">
+              <string>min </string>
+             </property>
+             <property name="suffix">
+              <string>%</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QDoubleSpinBox" name="cloudCoverMaxSpin">
+             <property name="prefix">
+              <string>max </string>
+             </property>
+             <property name="suffix">
+              <string>%</string>
+             </property>
+             <property name="minimum">
+              <double>0.010000000000000</double>
+             </property>
+             <property name="maximum">
+              <double>100.000000000000000</double>
+             </property>
+             <property name="value">
+              <double>50.000000000000000</double>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item row="2" column="1">
           <widget class="QDateTimeEdit" name="startPeriod">
+           <property name="dateTime">
+            <datetime>
+             <hour>0</hour>
+             <minute>0</minute>
+             <second>0</second>
+             <year>2019</year>
+             <month>1</month>
+             <day>1</day>
+            </datetime>
+           </property>
            <property name="displayFormat">
             <string>yyyy-MM-dd HH:mmZ</string>
            </property>
           </widget>
          </item>
          <item row="2" column="0">
+          <widget class="QLabel" name="label_2">
+           <property name="text">
+            <string>Start Time Period</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
           <widget class="QLabel" name="label_3">
            <property name="text">
             <string>End Time Period</string>
@@ -103,8 +156,18 @@
            </property>
           </widget>
          </item>
-         <item row="2" column="1">
+         <item row="3" column="1">
           <widget class="QDateTimeEdit" name="endPeriod">
+           <property name="dateTime">
+            <datetime>
+             <hour>0</hour>
+             <minute>0</minute>
+             <second>0</second>
+             <year>2019</year>
+             <month>1</month>
+             <day>1</day>
+            </datetime>
+           </property>
            <property name="displayFormat">
             <string>yyyy-MM-dd HH:mmZ</string>
            </property>

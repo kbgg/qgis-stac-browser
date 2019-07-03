@@ -24,6 +24,7 @@ class ItemLoadingDialog(QtWidgets.QDialog, FORM_CLASS):
                                               self.data['extent'],
                                               self.data['start_time'],
                                               self.data['end_time'],
+                                              self.data['query'],
                                               on_progress=self.on_progress,
                                               on_error=self.on_error,
                                               on_finished=self.on_finished)
