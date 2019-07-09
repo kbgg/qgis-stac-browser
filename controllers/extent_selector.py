@@ -1,4 +1,3 @@
-from typing import Optional
 import re
 
 from PyQt5 import uic
@@ -9,7 +8,7 @@ import qgis.utils
 
 from qgis.core import (
     QgsProject, QgsMapLayerProxyModel, QgsRectangle, QgsReferencedRectangle,
-    QgsPointXY, QgsMapLayer, QgsCoordinateReferenceSystem)
+    QgsPointXY, QgsCoordinateReferenceSystem)
 from qgis.gui import QgsMapLayerComboBox
 from processing.gui.RectangleMapTool import RectangleMapTool
 
@@ -27,7 +26,7 @@ class ExtentSelector(QWidget, FORM_CLASS):
 
     EXTRACT_REGEX = r'(-?\d+(\.\d+)?) (-?\d+(\.\d+)?), (-?\d+(\.\d+)?) (-?\d+(\.\d+)?) \[(EPSG:(\d{2,}))\]'
 
-    def __init__(self, parent=None, iface=None, filters=None) -> None:
+    def __init__(self, parent=None, iface=None, filters=None):
         """Constructor."""
         super(ExtentSelector, self).__init__(parent)
 
@@ -68,7 +67,7 @@ class ExtentSelector(QWidget, FORM_CLASS):
             self.on_extent_layer_dialog_accepted)
         self.lineEdit.textChanged.connect(self.on_line_textchanged)
 
-    def _init_extent_layer_dialog(self, filters: QgsMapLayerProxyModel.Filters = QgsMapLayerProxyModel.All) -> QDialog:
+    def _init_extent_layer_dialog(self, filters=QgsMapLayerProxyModel.All):
         dialog = QDialog()
         layout = QVBoxLayout()
         buttons = QDialogButtonBox(
@@ -92,7 +91,7 @@ class ExtentSelector(QWidget, FORM_CLASS):
 
         return dialog
 
-    def is_valid(self, value: str = None) -> bool:
+    def is_valid(self, value=None):
         """Check if input string is valid."""
         if value is None:
             value = self.lineEdit.text()
@@ -102,7 +101,7 @@ class ExtentSelector(QWidget, FORM_CLASS):
         else:
             return False
 
-    def value(self) -> Optional[QgsReferencedRectangle]:
+    def value(self):
         """Mimic the QT API to get the value."""
         # Even though it is more work, everytime we should convert the
         # rectangle to string and then parse the string back to a rectangle.
@@ -125,7 +124,7 @@ class ExtentSelector(QWidget, FORM_CLASS):
 
         return rect
 
-    def toggle_line_validity(self, is_valid: bool = None) -> None:
+    def toggle_line_validity(self, is_valid=None):
         """Set the input with red class if not valid."""
         if is_valid is None:
             is_valid = self.is_valid()
@@ -135,30 +134,30 @@ class ExtentSelector(QWidget, FORM_CLASS):
         else:
             self.lineEdit.setStyleSheet('color: red;')
 
-    def on_line_textchanged(self, value: str) -> None:
+    def on_line_textchanged(self, value):
         """Triggered when the input changes, even programatically."""
         self.toggle_line_validity()
 
-    def on_extent_layer_dialog_accepted(self) -> None:
+    def on_extent_layer_dialog_accepted(self):
         """Triggered when a layer is selected and dialog accepted."""
         layer = self.extent_layer_dialog.layer_combobox.currentLayer()
         self.set_value_from_layer(layer)
 
-    def on_action_canvas_triggered(self) -> None:
+    def on_action_canvas_triggered(self):
         """Triggered when menu action "canvas" is clicked."""
         self.set_value_from_rect(self.canvas.extent())
 
-    def on_action_layer_triggered(self, filters: QgsMapLayerProxyModel.Filters) -> None:
+    def on_action_layer_triggered(self, filters):
         """Triggered when menu action "layer" is clicked."""
         self.extent_layer_dialog.show()
 
-    def on_action_selection_triggered(self) -> None:
+    def on_action_selection_triggered(self):
         """Triggered when menu action "selection" is clicked."""
         self.prev_map_tool = self.canvas.mapTool()
         self.canvas.setMapTool(self.tool)
         self.dialog.showMinimized()
 
-    def on_tool_update_extent(self) -> None:
+    def on_tool_update_extent(self):
         """Triggered when the map tool finishes drawing a rectangle."""
         rect = self.tool.rectangle()
         self.set_value_from_rect(rect)
@@ -170,7 +169,7 @@ class ExtentSelector(QWidget, FORM_CLASS):
         self.dialog.raise_()
         self.dialog.activateWindow()
 
-    def set_value_from_str(self, value: str, crs: QgsCoordinateReferenceSystem = None) -> None:
+    def set_value_from_str(self, value, crs=None):
         """Set the coordinates from the coordinates string.
 
         If no CRS provided, gets the one from the project.
@@ -185,11 +184,11 @@ class ExtentSelector(QWidget, FORM_CLASS):
         self.toggle_line_validity()
         self.lineEdit.setText(value)
 
-    def set_value_from_layer(self, layer: QgsMapLayer) -> None:
+    def set_value_from_layer(self, layer):
         """Set the coordinates to the passed layer extent."""
         self.set_value_from_rect(layer.extent(), layer.crs())
 
-    def set_value_from_rect(self, rect: QgsRectangle, crs: QgsCoordinateReferenceSystem = None) -> None:
+    def set_value_from_rect(self, rect, crs=None):
         """Set the coordinates from the passed rectangle extent.
 
         If no CRS provided, tries to obtain it from the rectangle.
