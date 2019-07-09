@@ -46,8 +46,10 @@ class API:
             'bbox': bbox,
             'time': time,
             'limit': limit,
-            'query': query,
         }
+
+        if query is not None:
+            body['query'] = query
 
         if next_page is not None:
             body['next'] = next_page
