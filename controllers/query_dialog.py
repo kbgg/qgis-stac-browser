@@ -110,7 +110,10 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
                 datetime.strptime(self.endPeriod.text(), '%Y-%m-%d %H:%MZ'))
 
     @property
-    def query(self):
+    def query_filters(self):
+        if not self.enableFiltersCheckBox.isChecked():
+            return None
+
         return {
             'eo:cloud_cover': {
                 'gte': self.cloudCoverMinSpin.value(),
@@ -120,13 +123,14 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def on_search_clicked(self):
         valid = self.validate()
+
         if not valid:
             return
 
         self.hooks['on_search'](self.api_selections,
                                 self.extent_layer,
                                 self.time_period,
-                                self.query)
+                                self.query_filters)
 
     def on_cancel_clicked(self):
         self.hooks['on_close']()
