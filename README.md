@@ -13,6 +13,10 @@ Whenever dev stabilizes a release is cut and we merge dev in to master. So maste
 It is possible that there may be small releases in quick succession, especially if they are nice improvements that do 
 not require lots of updating.
 
+## Contributing
+
+Please read the [contributing guide](CONTRIBUTING.md) before submitting any pull requests.
+
 ## Building
 
 To build the plugin and deploy to your plugin directory you will need the [pb_tool](http://g-sherman.github.io/plugin_build_tool/) CLI tool.
