@@ -134,7 +134,7 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
             return
 
         self.hooks['on_search'](self.api_selections,
-                                self.extent_layer,
+                                self.extent_rect,
                                 self.time_period,
                                 self.query_filters)
 
