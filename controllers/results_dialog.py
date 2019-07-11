@@ -6,8 +6,7 @@ from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices, QColor
 
 from qgis.gui import QgsRubberBand
-from qgis.core import (QgsWkbTypes, QgsPointXY, QgsGeometry,
-                       QgsReferencedRectangle)
+from qgis.core import (QgsWkbTypes, QgsPointXY, QgsGeometry, QgsReferencedRectangle)
 
 from ..utils import ui
 from ..utils import crs

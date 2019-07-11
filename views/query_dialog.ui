@@ -173,9 +173,6 @@
            </property>
           </widget>
          </item>
-         <item row="0" column="1">
-          <widget class="QgsMapLayerComboBox" name="extentLayer"/>
-         </item>
          <item row="1" column="1">
           <widget class="QCheckBox" name="enableFiltersCheckBox">
            <property name="text">
@@ -240,13 +237,6 @@
    </item>
   </layout>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>QgsMapLayerComboBox</class>
-   <extends>QComboBox</extends>
-   <header>qgsmaplayercombobox.h</header>
-  </customwidget>
- </customwidgets>
  <resources/>
  <connections>
   <connection>
