@@ -6,10 +6,11 @@ from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices, QColor
 
 from qgis.gui import QgsRubberBand
-from qgis.core import QgsWkbTypes, QgsPointXY, QgsGeometry, \
-    QgsCoordinateReferenceSystem
+from qgis.core import (QgsWkbTypes, QgsPointXY, QgsGeometry,
+                       QgsReferencedRectangle)
 
 from ..utils import ui
+from ..utils import crs
 from ..utils.config import Config
 from ..threads.load_preview_thread import LoadPreviewThread
 
@@ -228,11 +229,13 @@ class ResultsDialog(QtWidgets.QDialog, FORM_CLASS):
             # unsupported geometry type
             return
 
-        self._rubberband.setToGeometry(
-            geom, QgsCoordinateReferenceSystem(4326))
+        self._rubberband.setToGeometry(geom, crs.crs4326)
         self._rubberband.show()
 
-        self.canvas.setExtent(geom.boundingBox())
+        bbox = crs.transform(crs.crs4326, crs.get_project_crs(), geom.boundingBox())
+
+        # TODO one day setExtent will support QgsReferencedRectangle :)
+        self.canvas.setExtent(QgsReferencedRectangle(bbox, crs.get_project_crs()))
         self.canvas.refresh()
 
     def create_rubberband(self):

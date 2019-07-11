@@ -32,10 +32,10 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
         self.populate_time_periods()
         self.populate_collection_list()
 
-        self.selectAllCollectionsButton.clicked.connect(
-            self.on_select_all_collections_clicked)
-        self.deselectAllCollectionsButton.clicked.connect(
-            self.on_deselect_all_collections_clicked)
+        self.selectAllCollectionsButton.clicked.connect(self.on_select_all_collections_clicked)
+        self.deselectAllCollectionsButton.clicked.connect(self.on_deselect_all_collections_clicked)
+        self.cloudCoverMinSpin.valueChanged.connect(self.on_cloud_cover_min_spin_changed)
+        self.cloudCoverMaxSpin.valueChanged.connect(self.on_cloud_cover_max_spin_changed)
         self.searchButton.clicked.connect(self.on_search_clicked)
         self.cancelButton.clicked.connect(self.on_cancel_clicked)
 
@@ -109,14 +109,28 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
         return (datetime.strptime(self.startPeriod.text(), '%Y-%m-%d %H:%MZ'),
                 datetime.strptime(self.endPeriod.text(), '%Y-%m-%d %H:%MZ'))
 
+    @property
+    def query_filters(self):
+        if not self.enableFiltersCheckBox.isChecked():
+            return None
+
+        return {
+            'eo:cloud_cover': {
+                'gte': self.cloudCoverMinSpin.value(),
+                'lte': self.cloudCoverMaxSpin.value(),
+            }
+        }
+
     def on_search_clicked(self):
         valid = self.validate()
+
         if not valid:
             return
 
         self.hooks['on_search'](self.api_selections,
                                 self.extent_layer,
-                                self.time_period)
+                                self.time_period,
+                                self.query_filters)
 
     def on_cancel_clicked(self):
         self.hooks['on_close']()
@@ -126,6 +140,18 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def on_deselect_all_collections_clicked(self):
         self._toggle_all_collections_checked(False)
+
+    def on_cloud_cover_min_spin_changed(self, value):
+        max_value = self.cloudCoverMaxSpin.value()
+
+        if value >= self.cloudCoverMaxSpin.value():
+            self.cloudCoverMinSpin.setValue(max_value - 0.01)
+
+    def on_cloud_cover_max_spin_changed(self, value):
+        min_value = self.cloudCoverMinSpin.value()
+
+        if value < self.cloudCoverMaxSpin.value():
+            self.cloudCoverMaxSpin.setValue(min_value + 0.01)
 
     def closeEvent(self, event):
         if event.spontaneous():

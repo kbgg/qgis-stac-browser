@@ -9,7 +9,7 @@ class LoadItemsThread(QThread):
     error_signal = pyqtSignal(Exception)
     finished_signal = pyqtSignal(list)
 
-    def __init__(self, api_collections, extent, start_time, end_time,
+    def __init__(self, api_collections, extent, start_time, end_time, query,
                  on_progress=None, on_error=None, on_finished=None):
         QThread.__init__(self)
         self.current_page = 0
@@ -18,6 +18,7 @@ class LoadItemsThread(QThread):
         self.extent = extent
         self.start_time = start_time
         self.end_time = end_time
+        self.query = query
         self.on_progress = on_progress
         self.on_error = on_error
         self.on_finished = on_finished
@@ -40,6 +41,7 @@ class LoadItemsThread(QThread):
                                          self.extent,
                                          self.start_time,
                                          self.end_time,
+                                         self.query,
                                          on_next_page=self.on_next_page)
                 all_items.extend(items)
             self.finished_signal.emit(all_items)
