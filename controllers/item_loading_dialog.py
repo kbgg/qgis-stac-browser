@@ -24,6 +24,7 @@ class ItemLoadingDialog(QtWidgets.QDialog, FORM_CLASS):
                                               self.data['extent'],
                                               self.data['start_time'],
                                               self.data['end_time'],
+                                              self.data['query'],
                                               on_progress=self.on_progress,
                                               on_error=self.on_error,
                                               on_finished=self.on_finished)
@@ -41,6 +42,8 @@ class ItemLoadingDialog(QtWidgets.QDialog, FORM_CLASS):
     def on_error(self, e):
         if type(e) == urllib.error.URLError:
             error(self.iface, f'Network Error: {e.reason}')
+        elif type(e) == urllib.error.HTTPError:
+            error(self.iface, f'Network Error: [{e.code}] {e.reason}')
         else:
             error(self.iface, f'Network Error: {type(e).__name__}')
         self.hooks['on_error']()

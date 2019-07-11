@@ -1,0 +1,4 @@
+[flake8]
+exclude = help/,venv/,resources.py
+per-file-ignores = stac_browser.py:F401,F403
+max-line-length = 119

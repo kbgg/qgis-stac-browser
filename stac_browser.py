@@ -16,6 +16,7 @@ from .controllers.configure_apis_dialog import ConfigureAPIDialog
 from .controllers.about_dialog import AboutDialog
 from .utils.config import Config
 from .utils.logging import error
+from .utils import crs
 
 
 class STACBrowser:
@@ -71,10 +72,12 @@ class STACBrowser:
             },
         }
 
-    def on_search(self, api_collections, extent_layer, time_period):
+    def on_search(self, api_collections, extent_rect, time_period, query):
         (start_time, end_time) = time_period
 
-        extent_rect = extent_layer.extent()
+        # the API consumes only EPSG:4326
+        extent_rect = crs.transform(extent_rect.crs(), 4326, extent_rect)
+
         extent = [
             extent_rect.xMinimum(),
             extent_rect.yMinimum(),
@@ -86,7 +89,8 @@ class STACBrowser:
             'api_collections': api_collections,
             'extent': extent,
             'start_time': start_time,
-            'end_time': end_time
+            'end_time': end_time,
+            'query': query,
         }
         self.current_window = 'ITEM_LOADING'
         self.windows['QUERY']['dialog'].close()

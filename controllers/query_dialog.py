@@ -2,12 +2,13 @@ from datetime import datetime
 
 from PyQt5 import uic, QtWidgets, QtCore
 from PyQt5.QtGui import QStandardItemModel
-from PyQt5.QtWidgets import QTreeWidgetItem
+from PyQt5.QtWidgets import (QTreeWidgetItem, QFormLayout)
 
-from qgis.core import QgsProject, QgsMapLayer
+from qgis.core import QgsMapLayerProxyModel
 
 from ..utils import ui
 from ..utils.logging import error
+from .extent_selector import ExtentSelector
 
 
 FORM_CLASS, _ = uic.loadUiType(ui.path('query_dialog.ui'))
@@ -23,30 +24,29 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
 
         self.setupUi(self)
 
-        self._extent_layers = None
         self._api_tree_model = None
 
+        self.extentSelector = ExtentSelector(parent=self,
+                                             iface=iface,
+                                             filters=QgsMapLayerProxyModel.VectorLayer
+                                             | QgsMapLayerProxyModel.RasterLayer)
+        self.filterLayout.setWidget(0, QFormLayout.FieldRole, self.extentSelector)
+
+        self.extentSelector.show()
+
         self.populate_time_periods()
-        self.populate_extent_layers()
         self.populate_collection_list()
 
+        self.selectAllCollectionsButton.clicked.connect(self.on_select_all_collections_clicked)
+        self.deselectAllCollectionsButton.clicked.connect(self.on_deselect_all_collections_clicked)
+        self.cloudCoverMinSpin.valueChanged.connect(self.on_cloud_cover_min_spin_changed)
+        self.cloudCoverMaxSpin.valueChanged.connect(self.on_cloud_cover_max_spin_changed)
         self.searchButton.clicked.connect(self.on_search_clicked)
         self.cancelButton.clicked.connect(self.on_cancel_clicked)
 
     def populate_time_periods(self):
         now = QtCore.QDateTime.currentDateTimeUtc()
         self.endPeriod.setDateTime(now)
-
-    def populate_extent_layers(self):
-        self._extent_layers = []
-
-        layers = QgsProject.instance().mapLayers()
-        for layer_key, layer in layers.items():
-            if layer.type() in [QgsMapLayer.VectorLayer]:
-                self._extent_layers.append(layer)
-
-        for layer in self._extent_layers:
-            self.extentLayer.addItem(layer.name())
 
     def populate_collection_list(self):
         self._api_tree_model = QStandardItemModel(self.treeView)
@@ -70,7 +70,8 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def validate(self):
         valid = True
-        if self.extentLayer.currentIndex() < 0:
+
+        if not self.extentSelector.is_valid():
             error(self.iface, "Extent layer is not valid")
             valid = False
         start_time, end_time = self.time_period
@@ -106,29 +107,70 @@ class QueryDialog(QtWidgets.QDialog, FORM_CLASS):
         return sorted(self.data.get('apis', []))
 
     @property
-    def extent_layer(self):
-        if self.extentLayer.currentIndex() >= len(self._extent_layers):
-            return None
-
-        return self._extent_layers[self.extentLayer.currentIndex()]
+    def extent_rect(self):
+        return self.extentSelector.value()
 
     @property
     def time_period(self):
         return (datetime.strptime(self.startPeriod.text(), '%Y-%m-%d %H:%MZ'),
                 datetime.strptime(self.endPeriod.text(), '%Y-%m-%d %H:%MZ'))
 
+    @property
+    def query_filters(self):
+        if not self.enableFiltersCheckBox.isChecked():
+            return None
+
+        return {
+            'eo:cloud_cover': {
+                'gte': self.cloudCoverMinSpin.value(),
+                'lte': self.cloudCoverMaxSpin.value(),
+            }
+        }
+
     def on_search_clicked(self):
         valid = self.validate()
+
         if not valid:
             return
 
         self.hooks['on_search'](self.api_selections,
-                                self.extent_layer,
-                                self.time_period)
+                                self.extent_rect,
+                                self.time_period,
+                                self.query_filters)
 
     def on_cancel_clicked(self):
         self.hooks['on_close']()
 
+    def on_select_all_collections_clicked(self):
+        self._toggle_all_collections_checked(True)
+
+    def on_deselect_all_collections_clicked(self):
+        self._toggle_all_collections_checked(False)
+
+    def on_cloud_cover_min_spin_changed(self, value):
+        max_value = self.cloudCoverMaxSpin.value()
+
+        if value >= self.cloudCoverMaxSpin.value():
+            self.cloudCoverMinSpin.setValue(max_value - 0.01)
+
+    def on_cloud_cover_max_spin_changed(self, value):
+        min_value = self.cloudCoverMinSpin.value()
+
+        if value < self.cloudCoverMaxSpin.value():
+            self.cloudCoverMaxSpin.setValue(min_value + 0.01)
+
     def closeEvent(self, event):
         if event.spontaneous():
             self.hooks['on_close']()
+
+    def _toggle_all_collections_checked(self, checked):
+        state = QtCore.Qt.Checked if checked else QtCore.Qt.Unchecked
+
+        root = self.treeView.invisibleRootItem()
+        for i in range(root.childCount()):
+            api_node = root.child(i)
+            api_node.setCheckState(0, state)
+
+            for j in range(api_node.childCount()):
+                collection_node = api_node.child(j)
+                collection_node.setCheckState(0, state)
