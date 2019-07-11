@@ -72,7 +72,7 @@ class STACBrowser:
             },
         }
 
-    def on_search(self, api_collections, extent_rect, time_period):
+    def on_search(self, api_collections, extent_layer, time_period, query):
         (start_time, end_time) = time_period
 
         # the API consumes only EPSG:4326
@@ -89,7 +89,8 @@ class STACBrowser:
             'api_collections': api_collections,
             'extent': extent,
             'start_time': start_time,
-            'end_time': end_time
+            'end_time': end_time,
+            'query': query,
         }
         self.current_window = 'ITEM_LOADING'
         self.windows['QUERY']['dialog'].close()
